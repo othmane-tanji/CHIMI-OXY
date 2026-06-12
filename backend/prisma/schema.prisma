@@ -1,0 +1,163 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  nom       String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("users")
+}
+
+model Employe {
+  id            Int       @id @default(autoincrement())
+  nom           String
+  prenom        String
+  cin           String    @unique
+  telephone     String?
+  adresse       String?
+  dateNaissance DateTime? @map("date_naissance")
+  fonction      String?   @default("EMPLOYE")
+  situationFamiliale String? @map("situation_familiale")
+  nombreEnfants Int?      @default(0) @map("nombre_enfants")
+  cnss          String?
+  cimr          String?
+  dateEmbauche  DateTime  @map("date_embauche")
+  societe       String
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  conges    Conge[]
+  bulletins BulletinPaie[]
+
+  @@map("employes")
+}
+
+model Client {
+  id         Int      @id @default(autoincrement())
+  nomClient  String   @map("nom_client")
+  societe    String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  facturesVente FactureVente[]
+  encaissements Encaissement[]
+
+  @@map("clients")
+}
+
+model Fournisseur {
+  id             Int      @id @default(autoincrement())
+  nomFournisseur String   @map("nom_fournisseur")
+  societe        String
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  facturesAchat  FactureAchat[]
+  decaissements  Decaissement[]
+
+  @@map("fournisseurs")
+}
+
+model Conge {
+  id        Int      @id @default(autoincrement())
+  employeId Int      @map("employe_id")
+  date      DateTime
+  motif     String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  employe Employe @relation(fields: [employeId], references: [id], onDelete: Cascade)
+
+  @@unique([employeId, date])
+  @@map("conges")
+}
+
+model BulletinPaie {
+  id                   Int      @id @default(autoincrement())
+  employeId            Int      @map("employe_id")
+  mois                 Int
+  annee                Int
+  salaireBase          Decimal  @map("salaire_base")
+  nombreJours          Int      @map("nombre_jours")
+  joursAbsents         Int      @default(0) @map("jours_absents")
+  tauxJournalier       Decimal  @map("taux_journalier")
+  montantAppointements Decimal  @map("montant_appointements")
+  tauxAnciennete       Decimal  @default(0) @map("taux_anciennete")
+  montantAnciennete    Decimal  @default(0) @map("montant_anciennete")
+  salaireBrut          Decimal  @map("salaire_brut")
+  primes               Decimal  @default(0)
+  cnss                 Decimal  @default(0)
+  amo                  Decimal  @default(0)
+  ir                   Decimal  @default(0)
+  indemniteTransport   Decimal  @default(150) @map("indemnite_transport")
+  deductions           Decimal  @default(0)
+  salaireNet           Decimal  @map("salaire_net")
+  pdfPath              String?  @map("pdf_path")
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  employe Employe @relation(fields: [employeId], references: [id], onDelete: Cascade)
+
+  @@unique([employeId, mois, annee])
+  @@map("bulletins_paie")
+}
+
+model FactureAchat {
+  id              Int          @id @default(autoincrement())
+  fournisseurId   Int          @map("fournisseur_id")
+  numeroFacture   String       @map("numero_facture")
+  dateFacture     DateTime     @map("date_facture")
+  montant         Decimal
+  pdfPath         String?      @map("pdf_path")
+  createdAt       DateTime     @default(now()) @map("created_at")
+
+  fournisseur Fournisseur @relation(fields: [fournisseurId], references: [id], onDelete: Cascade)
+
+  @@map("factures_achat")
+}
+
+model FactureVente {
+  id            Int      @id @default(autoincrement())
+  clientId      Int      @map("client_id")
+  numeroFacture String   @map("numero_facture")
+  dateFacture   DateTime @map("date_facture")
+  montant       Decimal
+  pdfPath       String?  @map("pdf_path")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@map("factures_vente")
+}
+
+model Encaissement {
+  id        Int      @id @default(autoincrement())
+  clientId  Int      @map("client_id")
+  montant   Decimal
+  date      DateTime
+  reference String
+  pdfPath   String?  @map("pdf_path")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@map("encaissements")
+}
+
+model Decaissement {
+  id            Int      @id @default(autoincrement())
+  fournisseurId Int      @map("fournisseur_id")
+  montant       Decimal
+  date          DateTime
+  reference     String
+  pdfPath       String?  @map("pdf_path")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  fournisseur Fournisseur @relation(fields: [fournisseurId], references: [id], onDelete: Cascade)
+
+  @@map("decaissements")
+}
