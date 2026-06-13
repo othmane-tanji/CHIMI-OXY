@@ -18,10 +18,10 @@ const PAGE_H = 768;
  * Coordonnées calibrées sur TEMPLATE-OXYRAL.png (1086×1448 px)
  */
 const F = {
-  date: { x: 530, y: 190 },
-  numero: { x: 805, y: 190 },
-  telephone: { x: 200, y: 394 },
-  mail: { x: 150, y: 418 },
+  date: { x: 530, y: 185 },
+  numero: { x: 805, y: 185 },
+  telephone: { x: 200, y: 396 },
+  mail: { x: 150, y: 421 },
   client: {
     x: 540,
     w: 480,
@@ -49,7 +49,7 @@ const F = {
   totalHt: { x: 56, y: 1115, w: 356 },
   totalTva: { x: 412, y: 1115, w: 300 },
   totalTtc: { x: 712, y: 1115, w: 308 },
-  montantLettres: { x: 530, y: 1233, w: 480 },
+  montantLettres: { x: 530, y: 1227, w: 480 },
 };
 
 export interface FacturePdfData {
@@ -159,14 +159,14 @@ export async function generateFactureVentePdf(
   const parts: string[] = [];
   const { ligne1, ville } = splitClientAdresse(data.clientAdresse);
 
-  parts.push(svgText(formatDateFacture(data.dateFacture), F.date.x, F.date.y, { size: 15 }));
-  parts.push(svgText(data.numeroFacture, F.numero.x, F.numero.y, { size: 15 }));
+  parts.push(svgText(formatDateFacture(data.dateFacture), F.date.x, F.date.y, { size: 21, weight: 'bold' }));
+  parts.push(svgText(data.numeroFacture, F.numero.x, F.numero.y, { size: 21, weight: 'bold' }));
 
   if (data.telephone) {
-    parts.push(svgText(data.telephone, F.telephone.x, F.telephone.y, { size: 16, weight: 'bold' }));
+    parts.push(svgText(data.telephone, F.telephone.x, F.telephone.y, { size: 18, weight: 'bold' }));
   }
   if (data.mail) {
-    parts.push(svgText(data.mail, F.mail.x, F.mail.y, { size: 18, weight: 'bold' }));
+    parts.push(svgText(data.mail, F.mail.x, F.mail.y, { size: 20, weight: 'bold' }));
   }
 
   parts.push(
@@ -185,20 +185,24 @@ export async function generateFactureVentePdf(
     // Une seule ligne d'adresse sans ville séparée
   }
   if (data.clientIce) {
-    parts.push(svgText(data.clientIce, F.client.xIce, F.client.yIce, { size: 15 }));
+    // Mask pre-printed "ICE :" label
+    parts.push(`<rect x="545" y="412" width="470" height="28" fill="#ffffff" />`);
+    parts.push(
+      svgBox(`ICE : ${data.clientIce}`, F.client.x, F.client.yIce, F.client.w, 16, 'bold'),
+    );
   }
 
-  parts.push(svgBox(data.codeClient, F.codeClient.x, F.codeClient.y, F.codeClient.w, 15));
+  parts.push(svgBox(data.codeClient, F.codeClient.x, F.codeClient.y, F.codeClient.w, 17, 'bold'));
   if (data.bonCommande) {
-    parts.push(svgBox(data.bonCommande, F.bonCommande.x, F.bonCommande.y, F.bonCommande.w, 15));
+    parts.push(svgBox(data.bonCommande, F.bonCommande.x, F.bonCommande.y, F.bonCommande.w, 17, 'bold'));
   }
   if (data.numeroAttach) {
     parts.push(
-      svgBox(data.numeroAttach, F.numeroAttach.x, F.numeroAttach.y, F.numeroAttach.w, 15),
+      svgBox(data.numeroAttach, F.numeroAttach.x, F.numeroAttach.y, F.numeroAttach.w, 17, 'bold'),
     );
   }
   if (data.rib) {
-    parts.push(svgBox(data.rib, F.rib.x, F.rib.y, F.rib.w, 13));
+    parts.push(svgBox(data.rib, F.rib.x, F.rib.y, F.rib.w, 15, 'bold'));
   }
 
   let rowY = F.table.y0;
@@ -246,7 +250,7 @@ export async function generateFactureVentePdf(
   );
   parts.push(
     svgText(data.montantEnLettres, F.montantLettres.x, F.montantLettres.y, {
-      size: 18,
+      size: 15,
       weight: 'bold',
     }),
   );
