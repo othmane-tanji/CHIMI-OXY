@@ -21,7 +21,7 @@ const F = {
   date: { x: 530, y: 190 },
   numero: { x: 805, y: 190 },
   telephone: { x: 200, y: 397 },
-  mail: { x: 150, y: 427 },
+  mail: { x: 150, y: 422 },
   client: {
     x: 540,
     w: 480,
@@ -30,7 +30,7 @@ const F = {
     yVille: 379,
     xIce: 600,
     wIce: 300,
-    yIce: 423,
+    yIce: 418,
   },
   codeClient: { x: 56, y: 539, w: 186 },
   bonCommande: { x: 242, y: 539, w: 220 },
@@ -49,7 +49,7 @@ const F = {
   totalHt: { x: 56, y: 1115, w: 356 },
   totalTva: { x: 412, y: 1115, w: 300 },
   totalTtc: { x: 712, y: 1115, w: 308 },
-  montantLettres: { x: 520, y: 1226, w: 490 },
+  montantLettres: { x: 530, y: 1226, w: 480 },
 };
 
 export interface FacturePdfData {
