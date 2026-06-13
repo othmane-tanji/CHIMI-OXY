@@ -206,22 +206,22 @@ export async function generateFactureVentePdf(
     const descLines = wrapDesignation(ligne.designation);
     descLines.forEach((line, i) => {
       parts.push(
-        svgText(line, F.table.designation.x, rowY + i * 16, { size: 14 }),
+        svgText(line, F.table.designation.x, rowY + i * 18, { size: 15, weight: 'bold' }),
       );
     });
 
-    const numY = rowY + Math.max(0, (descLines.length - 1) * 8);
+    const numY = rowY + Math.max(0, (descLines.length - 1) * 9);
     parts.push(
-      svgBox(formatMontantFacture(ligne.quantite), F.table.qte.x, numY, F.table.qte.w, 14),
+      svgBox(formatMontantFacture(ligne.quantite), F.table.qte.x, numY, F.table.qte.w, 15, 'bold'),
     );
     parts.push(
-      svgBox(formatMontantFacture(ligne.prixUnitaire), F.table.puHt.x, numY, F.table.puHt.w, 14),
+      svgBox(formatMontantFacture(ligne.prixUnitaire), F.table.puHt.x, numY, F.table.puHt.w, 15, 'bold'),
     );
     parts.push(
-      svgBox(formatMontantFacture(ligne.montantHt), F.table.montantHt.x, numY, F.table.montantHt.w, 14),
+      svgBox(formatMontantFacture(ligne.montantHt), F.table.montantHt.x, numY, F.table.montantHt.w, 15, 'bold'),
     );
 
-    rowY += Math.max(F.table.step, descLines.length * 18);
+    rowY += Math.max(F.table.step, descLines.length * 20) + 12;
     if (rowY > F.totalHorsTaxe.y - 25) break;
   }
 
