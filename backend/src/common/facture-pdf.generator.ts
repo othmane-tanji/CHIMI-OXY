@@ -40,7 +40,7 @@ const F = {
     y0: 640,
     step: 38,
     maxRows: 12,
-    designation: { x: 174, w: 406 },
+    designation: { x: 185, w: 395 },
     qte: { x: 588, w: 112 },
     puHt: { x: 708, w: 116 },
     montantHt: { x: 832, w: 180 },
