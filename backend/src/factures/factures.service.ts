@@ -1,8 +1,29 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import * as fs from 'fs';
+import * as path from 'path';
 import { PrismaService } from '../prisma/prisma.service';
 import { PdfService } from '../common/pdf.service';
-import { CreateFactureAchatDto, CreateFactureVenteDto } from './dto/create-facture.dto';
-import { UpdateFactureDto } from './dto/update-facture.dto';
+import {
+  calculerFactureVente,
+  formatNumeroFacture,
+} from '../common/facture.utils';
+import { generateFactureVentePdf } from '../common/facture-pdf.generator';
+import {
+  CreateFactureAchatDto,
+  CreateFactureVenteDto,
+} from './dto/create-facture.dto';
+import {
+  UpdateFactureDto,
+  UpdateFactureVenteDto,
+} from './dto/update-facture.dto';
+
+const DEFAULTS = {
+  codeClient: 'OX704',
+};
 
 @Injectable()
 export class FacturesService {
@@ -10,6 +31,73 @@ export class FacturesService {
     private prisma: PrismaService,
     private pdfService: PdfService,
   ) {}
+
+  private venteInclude = {
+    client: true,
+    lignes: { orderBy: { ordre: 'asc' as const } },
+  };
+
+  private async getNextSequence(annee: number): Promise<number> {
+    const cle = `vente_seq_${annee}`;
+    const existing = await this.prisma.factureConfig.findUnique({ where: { cle } });
+    if (existing) return parseInt(existing.valeur, 10) + 1;
+
+    const last = await this.prisma.factureVente.findFirst({
+      where: { numeroFacture: { startsWith: `${annee}/` } },
+      orderBy: { numeroFacture: 'desc' },
+    });
+    if (!last) return 1;
+    const part = last.numeroFacture.split('/')[1];
+    return (parseInt(part, 10) || 0) + 1;
+  }
+
+  async getProchainNumero(annee?: number) {
+    const year = annee ?? new Date().getFullYear();
+    const sequence = await this.getNextSequence(year);
+    const config = await this.prisma.factureConfig.findUnique({
+      where: { cle: `vente_seq_${year}` },
+    });
+    return {
+      annee: year,
+      sequence,
+      numeroFacture: formatNumeroFacture(year, sequence),
+      sequenceConfigurable: config ? parseInt(config.valeur, 10) : sequence - 1,
+    };
+  }
+
+  async setSequence(annee: number, sequence: number) {
+    const cle = `vente_seq_${annee}`;
+    await this.prisma.factureConfig.upsert({
+      where: { cle },
+      create: { cle, valeur: String(sequence) },
+      update: { valeur: String(sequence) },
+    });
+    return this.getProchainNumero(annee);
+  }
+
+  private async reserveNumero(annee: number, numeroForce?: string): Promise<string> {
+    const cle = `vente_seq_${annee}`;
+    if (numeroForce) {
+      const part = numeroForce.split('/')[1];
+      const seq = parseInt(part, 10);
+      if (seq) {
+        await this.prisma.factureConfig.upsert({
+          where: { cle },
+          create: { cle, valeur: String(seq) },
+          update: { valeur: String(seq) },
+        });
+      }
+      return numeroForce;
+    }
+    const sequence = await this.getNextSequence(annee);
+    const numero = formatNumeroFacture(annee, sequence);
+    await this.prisma.factureConfig.upsert({
+      where: { cle },
+      create: { cle, valeur: String(sequence) },
+      update: { valeur: String(sequence) },
+    });
+    return numero;
+  }
 
   // --- Factures Achat ---
   findAllAchat(filters?: { search?: string; dateDebut?: string; dateFin?: string }) {
@@ -42,7 +130,7 @@ export class FacturesService {
       },
       include: { fournisseur: true },
     });
-    const pdfPath = await this.generateFacturePdf('achat', facture);
+    const pdfPath = await this.generateFactureAchatPdf(facture);
     return this.prisma.factureAchat.update({
       where: { id: facture.id },
       data: { pdfPath },
@@ -65,7 +153,7 @@ export class FacturesService {
       },
       include: { fournisseur: true },
     });
-    const pdfPath = await this.generateFacturePdf('achat', facture);
+    const pdfPath = await this.generateFactureAchatPdf(facture);
     return this.prisma.factureAchat.update({
       where: { id },
       data: { pdfPath },
@@ -79,12 +167,13 @@ export class FacturesService {
     return this.prisma.factureAchat.delete({ where: { id } });
   }
 
-  // --- Factures Vente ---
+  // --- Factures Vente OXYRAL ---
   findAllVente(filters?: { search?: string; dateDebut?: string; dateFin?: string }) {
     const where: any = {};
     if (filters?.search) {
       where.OR = [
         { numeroFacture: { contains: filters.search } },
+        { clientNom: { contains: filters.search } },
         { client: { nomClient: { contains: filters.search } } },
       ];
     }
@@ -95,49 +184,140 @@ export class FacturesService {
     }
     return this.prisma.factureVente.findMany({
       where,
-      include: { client: true },
+      include: this.venteInclude,
       orderBy: { dateFacture: 'desc' },
     });
   }
 
+  async findOneVente(id: number) {
+    const facture = await this.prisma.factureVente.findUnique({
+      where: { id },
+      include: this.venteInclude,
+    });
+    if (!facture) throw new NotFoundException('Facture vente non trouvée');
+    return facture;
+  }
+
+  calculerPreview(lignes: { designation: string; quantite: number; prixUnitaire: number }[]) {
+    if (!lignes?.length) {
+      throw new BadRequestException('Ajoutez au moins une ligne de prestation');
+    }
+    return calculerFactureVente(lignes);
+  }
+
   async createVente(dto: CreateFactureVenteDto) {
+    if (!dto.lignes?.length) {
+      throw new BadRequestException('Ajoutez au moins une ligne de prestation');
+    }
+    const totaux = calculerFactureVente(dto.lignes);
+    const dateFacture = new Date(dto.dateFacture);
+    const annee = dateFacture.getFullYear();
+    const numeroFacture = await this.reserveNumero(annee, dto.numeroFacture);
+
     const facture = await this.prisma.factureVente.create({
       data: {
         clientId: dto.clientId,
-        numeroFacture: dto.numeroFacture,
-        dateFacture: new Date(dto.dateFacture),
-        montant: dto.montant,
+        numeroFacture,
+        dateFacture,
+        montant: totaux.totalTtc,
+        telephone: dto.telephone ?? '',
+        mail: dto.mail ?? '',
+        clientNom: dto.clientNom,
+        clientAdresse: dto.clientAdresse,
+        clientIce: dto.clientIce,
+        codeClient: dto.codeClient ?? DEFAULTS.codeClient,
+        bonCommande: dto.bonCommande,
+        numeroAttach: dto.numeroAttach,
+        rib: dto.rib,
+        totalHt: totaux.totalHt,
+        totalTva: totaux.totalTva,
+        totalTtc: totaux.totalTtc,
+        montantEnLettres: totaux.montantEnLettres,
+        lignes: {
+          create: totaux.lignes.map((l, i) => ({
+            designation: l.designation,
+            quantite: l.quantite,
+            prixUnitaire: l.prixUnitaire,
+            montantHt: l.montantHt,
+            ordre: i,
+          })),
+        },
       },
-      include: { client: true },
+      include: this.venteInclude,
     });
-    const pdfPath = await this.generateFacturePdf('vente', facture);
+
+    const pdfPath = await this.generateFactureVentePdfFile(facture);
     return this.prisma.factureVente.update({
       where: { id: facture.id },
       data: { pdfPath },
-      include: { client: true },
+      include: this.venteInclude,
     });
   }
 
-  async updateVente(id: number, dto: UpdateFactureDto) {
-    const existing = await this.prisma.factureVente.findUnique({
-      where: { id },
-      include: { client: true },
-    });
-    if (!existing) throw new NotFoundException('Facture vente non trouvée');
+  async updateVente(id: number, dto: UpdateFactureVenteDto) {
+    const existing = await this.findOneVente(id);
+    let totaux = {
+      totalHt: Number(existing.totalHt),
+      totalTva: Number(existing.totalTva),
+      totalTtc: Number(existing.totalTtc),
+      montantEnLettres: existing.montantEnLettres ?? '',
+      lignes: existing.lignes.map((l) => ({
+        designation: l.designation,
+        quantite: Number(l.quantite),
+        prixUnitaire: Number(l.prixUnitaire),
+        montantHt: Number(l.montantHt),
+      })),
+    };
+
+    if (dto.lignes) {
+      if (!dto.lignes.length) {
+        throw new BadRequestException('Ajoutez au moins une ligne de prestation');
+      }
+      totaux = calculerFactureVente(dto.lignes);
+      await this.prisma.factureVenteLigne.deleteMany({ where: { factureId: id } });
+    }
 
     const facture = await this.prisma.factureVente.update({
       where: { id },
       data: {
-        ...dto,
+        numeroFacture: dto.numeroFacture,
         dateFacture: dto.dateFacture ? new Date(dto.dateFacture) : undefined,
+        telephone: dto.telephone,
+        mail: dto.mail,
+        clientNom: dto.clientNom,
+        clientAdresse: dto.clientAdresse,
+        clientIce: dto.clientIce,
+        codeClient: dto.codeClient,
+        bonCommande: dto.bonCommande,
+        numeroAttach: dto.numeroAttach,
+        rib: dto.rib,
+        montant: totaux.totalTtc,
+        totalHt: totaux.totalHt,
+        totalTva: totaux.totalTva,
+        totalTtc: totaux.totalTtc,
+        montantEnLettres: totaux.montantEnLettres,
+        ...(dto.lignes
+          ? {
+              lignes: {
+                create: totaux.lignes.map((l, i) => ({
+                  designation: l.designation,
+                  quantite: l.quantite,
+                  prixUnitaire: l.prixUnitaire,
+                  montantHt: l.montantHt,
+                  ordre: i,
+                })),
+              },
+            }
+          : {}),
       },
-      include: { client: true },
+      include: this.venteInclude,
     });
-    const pdfPath = await this.generateFacturePdf('vente', facture);
+
+    const pdfPath = await this.generateFactureVentePdfFile(facture);
     return this.prisma.factureVente.update({
       where: { id },
       data: { pdfPath },
-      include: { client: true },
+      include: this.venteInclude,
     });
   }
 
@@ -147,25 +327,62 @@ export class FacturesService {
     return this.prisma.factureVente.delete({ where: { id } });
   }
 
-  private async generateFacturePdf(type: 'achat' | 'vente', facture: any) {
-    const isAchat = type === 'achat';
-    const titre = isAchat ? 'Facture d\'Achat' : 'Facture de Vente';
-    const partenaire = isAchat
-      ? facture.fournisseur.nomFournisseur
-      : facture.client.nomClient;
-    const filename = `facture-${type}-${facture.numeroFacture.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`;
+  getPdfAbsolutePath(relativePath: string): string {
+    return path.join(process.cwd(), relativePath);
+  }
 
-    const fullPath = await this.pdfService.generatePdf(`factures/${type}`, filename, (doc) => {
-      doc.fontSize(20).text(titre, { align: 'center' });
+  async regenerateVentePdf(id: number): Promise<string> {
+    const facture = await this.findOneVente(id);
+    return this.generateFactureVentePdfFile(facture);
+  }
+
+  private toPdfData(facture: any) {
+    return {
+      numeroFacture: facture.numeroFacture,
+      dateFacture: facture.dateFacture,
+      telephone: facture.telephone,
+      mail: facture.mail,
+      clientNom: facture.clientNom,
+      clientAdresse: facture.clientAdresse,
+      clientIce: facture.clientIce,
+      codeClient: facture.codeClient,
+      bonCommande: facture.bonCommande,
+      numeroAttach: facture.numeroAttach,
+      rib: facture.rib,
+      lignes: facture.lignes.map((l: any) => ({
+        designation: l.designation,
+        quantite: Number(l.quantite),
+        prixUnitaire: Number(l.prixUnitaire),
+        montantHt: Number(l.montantHt),
+      })),
+      totalHt: Number(facture.totalHt),
+      totalTva: Number(facture.totalTva),
+      totalTtc: Number(facture.totalTtc),
+      montantEnLettres: facture.montantEnLettres,
+    };
+  }
+
+  private async generateFactureVentePdfFile(facture: any): Promise<string> {
+    const dir = path.join(process.cwd(), 'storage', 'pdfs', 'factures', 'vente');
+    fs.mkdirSync(dir, { recursive: true });
+    const filename = `facture-${facture.numeroFacture.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`;
+    const fullPath = path.join(dir, filename);
+    await generateFactureVentePdf(this.toPdfData(facture), fullPath);
+    return path.relative(process.cwd(), fullPath).replace(/\\/g, '/');
+  }
+
+  private async generateFactureAchatPdf(facture: any) {
+    const filename = `facture-achat-${facture.numeroFacture.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`;
+    const fullPath = await this.pdfService.generatePdf(`factures/achat`, filename, (doc) => {
+      doc.fontSize(20).text('Facture d\'Achat', { align: 'center' });
       doc.moveDown();
       doc.fontSize(12);
       doc.text(`N° Facture : ${facture.numeroFacture}`);
-      doc.text(`${isAchat ? 'Fournisseur' : 'Client'} : ${partenaire}`);
+      doc.text(`Fournisseur : ${facture.fournisseur.nomFournisseur}`);
       doc.text(`Date : ${new Date(facture.dateFacture).toLocaleDateString('fr-FR')}`);
       doc.moveDown();
       doc.fontSize(14).text(`Montant : ${Number(facture.montant).toFixed(2)} MAD`, { underline: true });
     });
-
     return this.pdfService.getRelativePath(fullPath);
   }
 }

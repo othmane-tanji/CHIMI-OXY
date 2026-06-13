@@ -44,6 +44,9 @@ model Client {
   id         Int      @id @default(autoincrement())
   nomClient  String   @map("nom_client")
   societe    String
+  adresse    String?
+  ville      String?
+  ice        String?
   createdAt  DateTime @default(now()) @map("created_at")
 
   facturesVente FactureVente[]
@@ -120,18 +123,53 @@ model FactureAchat {
   @@map("factures_achat")
 }
 
-model FactureVente {
-  id            Int      @id @default(autoincrement())
-  clientId      Int      @map("client_id")
-  numeroFacture String   @map("numero_facture")
-  dateFacture   DateTime @map("date_facture")
-  montant       Decimal
-  pdfPath       String?  @map("pdf_path")
-  createdAt     DateTime @default(now()) @map("created_at")
+model FactureConfig {
+  cle    String @id
+  valeur String
 
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  @@map("facture_config")
+}
+
+model FactureVente {
+  id               Int      @id @default(autoincrement())
+  clientId         Int?     @map("client_id")
+  numeroFacture    String   @map("numero_facture")
+  dateFacture      DateTime @map("date_facture")
+  montant          Decimal
+  telephone        String   @default("")
+  mail             String   @default("")
+  clientNom        String   @default("") @map("client_nom")
+  clientAdresse    String   @default("") @map("client_adresse")
+  clientIce        String?  @map("client_ice")
+  codeClient       String   @default("OX704") @map("code_client")
+  bonCommande      String?  @map("bon_commande")
+  numeroAttach     String?  @map("numero_attach")
+  rib              String?
+  totalHt          Decimal  @default(0) @map("total_ht")
+  totalTva         Decimal  @default(0) @map("total_tva")
+  totalTtc         Decimal  @default(0) @map("total_ttc")
+  montantEnLettres String?  @map("montant_en_lettres")
+  pdfPath          String?  @map("pdf_path")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  client Client?            @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  lignes FactureVenteLigne[]
 
   @@map("factures_vente")
+}
+
+model FactureVenteLigne {
+  id           Int     @id @default(autoincrement())
+  factureId    Int     @map("facture_id")
+  designation  String
+  quantite     Decimal
+  prixUnitaire Decimal @map("prix_unitaire")
+  montantHt    Decimal @map("montant_ht")
+  ordre        Int     @default(0)
+
+  facture FactureVente @relation(fields: [factureId], references: [id], onDelete: Cascade)
+
+  @@map("facture_vente_lignes")
 }
 
 model Encaissement {

@@ -1,4 +1,14 @@
-import { IsDateString, IsInt, IsNumber, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsDateString,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Min,
+  ValidateNested,
+} from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateFactureAchatDto {
   @IsInt()
@@ -14,16 +24,73 @@ export class CreateFactureAchatDto {
   montant: number;
 }
 
-export class CreateFactureVenteDto {
-  @IsInt()
-  clientId: number;
-
+export class FactureLigneDto {
   @IsString()
-  numeroFacture: string;
+  designation: string;
+
+  @IsNumber()
+  @Min(0)
+  quantite: number;
+
+  @IsNumber()
+  @Min(0)
+  prixUnitaire: number;
+}
+
+export class CreateFactureVenteDto {
+  @IsOptional()
+  @IsInt()
+  clientId?: number;
+
+  @IsOptional()
+  @IsString()
+  numeroFacture?: string;
 
   @IsDateString()
   dateFacture: string;
 
-  @IsNumber()
-  montant: number;
+  @IsOptional()
+  @IsString()
+  telephone?: string;
+
+  @IsOptional()
+  @IsString()
+  mail?: string;
+
+  @IsString()
+  clientNom: string;
+
+  @IsString()
+  clientAdresse: string;
+
+  @IsOptional()
+  @IsString()
+  clientIce?: string;
+
+  @IsOptional()
+  @IsString()
+  codeClient?: string;
+
+  @IsOptional()
+  @IsString()
+  bonCommande?: string;
+
+  @IsOptional()
+  @IsString()
+  numeroAttach?: string;
+
+  @IsOptional()
+  @IsString()
+  rib?: string;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => FactureLigneDto)
+  lignes: FactureLigneDto[];
+}
+
+export class UpdateFactureConfigDto {
+  @IsInt()
+  @Min(1)
+  sequence: number;
 }

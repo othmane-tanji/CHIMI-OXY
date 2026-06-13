@@ -137,6 +137,23 @@ export const facturesApi = {
     const q = params ? '?' + new URLSearchParams(params).toString() : '';
     return api<any[]>(`/factures/vente${q}`);
   },
+  getVenteOne: (id: number) => api<any>(`/factures/vente/${id}`),
+  getProchainNumero: (annee?: number) => {
+    const q = annee ? `?annee=${annee}` : '';
+    return api<{ numeroFacture: string; sequence: number; annee: number }>(
+      `/factures/vente/prochain-numero${q}`,
+    );
+  },
+  setSequence: (annee: number, sequence: number) =>
+    api(`/factures/vente/config/${annee}`, {
+      method: 'PUT',
+      body: JSON.stringify({ sequence }),
+    }),
+  calculPreview: (lignes: { designation: string; quantite: number; prixUnitaire: number }[]) =>
+    api<any>('/factures/vente/calcul', {
+      method: 'POST',
+      body: JSON.stringify({ lignes }),
+    }),
   createAchat: (data: any) =>
     api('/factures/achat', { method: 'POST', body: JSON.stringify(data) }),
   createVente: (data: any) =>
@@ -147,6 +164,20 @@ export const facturesApi = {
     api(`/factures/vente/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   removeAchat: (id: number) => api(`/factures/achat/${id}`, { method: 'DELETE' }),
   removeVente: (id: number) => api(`/factures/vente/${id}`, { method: 'DELETE' }),
+  downloadVentePdf: async (id: number, filename: string) => {
+    const token = getToken();
+    const res = await fetch(`${API_URL}/factures/vente/${id}/pdf`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error('Téléchargement PDF impossible');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
 };
 
 export const traitesApi = {
