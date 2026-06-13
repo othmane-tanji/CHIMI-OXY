@@ -9,48 +9,47 @@ import {
 } from './facture.utils';
 
 const TEMPLATE = path.join(process.cwd(), 'assets', 'facture-template.png');
-const IMG_W = 768;
-const IMG_H = 1024;
+const IMG_W = 1086;
+const IMG_H = 1448;
 const PAGE_W = 576;
 const PAGE_H = 768;
 
 /**
- * Coordonnées calibrées sur facture-template.png (768×1024)
- * d'après l'exemple PRIMARIOS / 2026-023.
+ * Coordonnées calibrées sur TEMPLATE-OXYRAL.png (1086×1448 px)
  */
 const F = {
-  date: { x: 380, y: 134 },
-  numero: { x: 570, y: 134 },
-  telephone: { x: 145, y: 278 },
-  mail: { x: 110, y: 299 },
+  date: { x: 530, y: 190 },
+  numero: { x: 805, y: 190 },
+  telephone: { x: 200, y: 402 },
+  mail: { x: 150, y: 435 },
   client: {
-    x: 380,
-    w: 340,
-    yNom: 221,
-    yAdr1: 249,
-    yVille: 271,
-    xIce: 425,
-    wIce: 215,
-    yIce: 283,
+    x: 540,
+    w: 480,
+    yNom: 339,
+    yAdr1: 378,
+    yVille: 405,
+    xIce: 600,
+    wIce: 300,
+    yIce: 427,
   },
-  codeClient: { x: 46, y: 364, w: 131 },
-  bonCommande: { x: 177, y: 364, w: 156 },
-  numeroAttach: { x: 333, y: 364, w: 133 },
-  rib: { x: 466, y: 364, w: 254 },
+  codeClient: { x: 56, y: 539, w: 186 },
+  bonCommande: { x: 242, y: 539, w: 220 },
+  numeroAttach: { x: 462, y: 539, w: 188 },
+  rib: { x: 650, y: 541, w: 370 },
   table: {
-    y0: 438,
-    step: 28,
+    y0: 640,
+    step: 38,
     maxRows: 12,
-    designation: { x: 128, w: 287 },
-    qte: { x: 421, w: 80 },
-    puHt: { x: 507, w: 82 },
-    montantHt: { x: 595, w: 119 },
+    designation: { x: 174, w: 406 },
+    qte: { x: 588, w: 112 },
+    puHt: { x: 708, w: 116 },
+    montantHt: { x: 832, w: 180 },
   },
-  totalHorsTaxe: { x: 595, y: 696, w: 119 },
-  totalHt: { x: 46, y: 790, w: 224 },
-  totalTva: { x: 270, y: 790, w: 235 },
-  totalTtc: { x: 505, y: 790, w: 215 },
-  montantLettres: { x: 320, y: 885, w: 390 },
+  totalHorsTaxe: { x: 832, y: 1005, w: 180 },
+  totalHt: { x: 56, y: 1115, w: 356 },
+  totalTva: { x: 412, y: 1115, w: 300 },
+  totalTtc: { x: 712, y: 1115, w: 308 },
+  montantLettres: { x: 490, y: 1242, w: 520 },
 };
 
 export interface FacturePdfData {
@@ -130,7 +129,7 @@ function splitClientAdresse(adresse: string): { ligne1: string; ville: string } 
   return { ligne1: trimmed, ville: '' };
 }
 
-function wrapDesignation(text: string, maxLen = 38): string[] {
+function wrapDesignation(text: string, maxLen = 48): string[] {
   const words = text.split(/\s+/);
   const lines: string[] = [];
   let current = '';
@@ -160,46 +159,46 @@ export async function generateFactureVentePdf(
   const parts: string[] = [];
   const { ligne1, ville } = splitClientAdresse(data.clientAdresse);
 
-  parts.push(svgText(formatDateFacture(data.dateFacture), F.date.x, F.date.y, { size: 11 }));
-  parts.push(svgText(data.numeroFacture, F.numero.x, F.numero.y, { size: 11 }));
+  parts.push(svgText(formatDateFacture(data.dateFacture), F.date.x, F.date.y, { size: 15 }));
+  parts.push(svgText(data.numeroFacture, F.numero.x, F.numero.y, { size: 15 }));
 
   if (data.telephone) {
-    parts.push(svgText(data.telephone, F.telephone.x, F.telephone.y, { size: 11 }));
+    parts.push(svgText(data.telephone, F.telephone.x, F.telephone.y, { size: 15 }));
   }
   if (data.mail) {
-    parts.push(svgText(data.mail, F.mail.x, F.mail.y, { size: 11 }));
+    parts.push(svgText(data.mail, F.mail.x, F.mail.y, { size: 15 }));
   }
 
   parts.push(
-    svgBox(data.clientNom.toUpperCase(), F.client.x, F.client.yNom, F.client.w, 11, 'bold'),
+    svgBox(data.clientNom.toUpperCase(), F.client.x, F.client.yNom, F.client.w, 15, 'bold'),
   );
   if (ligne1) {
     parts.push(
-      svgBox(ligne1.toUpperCase(), F.client.x, F.client.yAdr1, F.client.w, 11, 'bold'),
+      svgBox(ligne1.toUpperCase(), F.client.x, F.client.yAdr1, F.client.w, 15, 'bold'),
     );
   }
   if (ville) {
     parts.push(
-      svgBox(ville.toUpperCase(), F.client.x, F.client.yVille, F.client.w, 13, 'bold'),
+      svgBox(ville.toUpperCase(), F.client.x, F.client.yVille, F.client.w, 18, 'bold'),
     );
   } else if (ligne1 && !ville) {
     // Une seule ligne d'adresse sans ville séparée
   }
   if (data.clientIce) {
-    parts.push(svgBox(data.clientIce, F.client.xIce, F.client.yIce, F.client.wIce, 11));
+    parts.push(svgBox(data.clientIce, F.client.xIce, F.client.yIce, F.client.wIce, 15));
   }
 
-  parts.push(svgBox(data.codeClient, F.codeClient.x, F.codeClient.y, F.codeClient.w));
+  parts.push(svgBox(data.codeClient, F.codeClient.x, F.codeClient.y, F.codeClient.w, 15));
   if (data.bonCommande) {
-    parts.push(svgBox(data.bonCommande, F.bonCommande.x, F.bonCommande.y, F.bonCommande.w));
+    parts.push(svgBox(data.bonCommande, F.bonCommande.x, F.bonCommande.y, F.bonCommande.w, 15));
   }
   if (data.numeroAttach) {
     parts.push(
-      svgBox(data.numeroAttach, F.numeroAttach.x, F.numeroAttach.y, F.numeroAttach.w),
+      svgBox(data.numeroAttach, F.numeroAttach.x, F.numeroAttach.y, F.numeroAttach.w, 15),
     );
   }
   if (data.rib) {
-    parts.push(svgBox(data.rib, F.rib.x, F.rib.y, F.rib.w, 9));
+    parts.push(svgBox(data.rib, F.rib.x, F.rib.y, F.rib.w, 13));
   }
 
   let rowY = F.table.y0;
@@ -207,32 +206,32 @@ export async function generateFactureVentePdf(
     const descLines = wrapDesignation(ligne.designation);
     descLines.forEach((line, i) => {
       parts.push(
-        svgText(line, F.table.designation.x, rowY + i * 12, { size: 10 }),
+        svgText(line, F.table.designation.x, rowY + i * 16, { size: 14 }),
       );
     });
 
-    const numY = rowY + Math.max(0, (descLines.length - 1) * 6);
+    const numY = rowY + Math.max(0, (descLines.length - 1) * 8);
     parts.push(
       svgText(formatMontantFacture(ligne.quantite), F.table.qte.x + F.table.qte.w, numY, {
         anchor: 'end',
-        size: 10,
+        size: 14,
       }),
     );
     parts.push(
       svgText(formatMontantFacture(ligne.prixUnitaire), F.table.puHt.x + F.table.puHt.w, numY, {
         anchor: 'end',
-        size: 10,
+        size: 14,
       }),
     );
     parts.push(
       svgText(formatMontantFacture(ligne.montantHt), F.table.montantHt.x + F.table.montantHt.w, numY, {
         anchor: 'end',
-        size: 10,
+        size: 14,
       }),
     );
 
-    rowY += Math.max(F.table.step, descLines.length * 14);
-    if (rowY > F.totalHorsTaxe.y - 20) break;
+    rowY += Math.max(F.table.step, descLines.length * 18);
+    if (rowY > F.totalHorsTaxe.y - 25) break;
   }
 
   parts.push(
@@ -240,21 +239,21 @@ export async function generateFactureVentePdf(
       formatMontantFacture(data.totalHt),
       F.totalHorsTaxe.x + F.totalHorsTaxe.w,
       F.totalHorsTaxe.y,
-      { anchor: 'end', size: 10, weight: 'bold' },
+      { anchor: 'end', size: 14, weight: 'bold' },
     ),
   );
   parts.push(
-    svgBox(formatMontantFacture(data.totalHt), F.totalHt.x, F.totalHt.y, F.totalHt.w, 11, 'bold'),
+    svgBox(formatMontantFacture(data.totalHt), F.totalHt.x, F.totalHt.y, F.totalHt.w, 16, 'bold'),
   );
   parts.push(
-    svgBox(formatMontantFacture(data.totalTva), F.totalTva.x, F.totalTva.y, F.totalTva.w, 11, 'bold'),
+    svgBox(formatMontantFacture(data.totalTva), F.totalTva.x, F.totalTva.y, F.totalTva.w, 16, 'bold'),
   );
   parts.push(
-    svgBox(formatMontantFacture(data.totalTtc), F.totalTtc.x, F.totalTtc.y, F.totalTtc.w, 11, 'bold'),
+    svgBox(formatMontantFacture(data.totalTtc), F.totalTtc.x, F.totalTtc.y, F.totalTtc.w, 16, 'bold'),
   );
   parts.push(
     svgText(data.montantEnLettres, F.montantLettres.x, F.montantLettres.y, {
-      size: 10,
+      size: 14,
       weight: 'bold',
     }),
   );
