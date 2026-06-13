@@ -30,7 +30,7 @@ const F = {
     yVille: 379,
     xIce: 600,
     wIce: 300,
-    yIce: 427,
+    yIce: 423,
   },
   codeClient: { x: 56, y: 539, w: 186 },
   bonCommande: { x: 242, y: 539, w: 220 },
@@ -45,11 +45,11 @@ const F = {
     puHt: { x: 708, w: 116 },
     montantHt: { x: 832, w: 180 },
   },
-  totalHorsTaxe: { x: 832, y: 1005, w: 180 },
+  totalHorsTaxe: { x: 832, y: 994, w: 180 },
   totalHt: { x: 56, y: 1115, w: 356 },
   totalTva: { x: 412, y: 1115, w: 300 },
   totalTtc: { x: 712, y: 1115, w: 308 },
-  montantLettres: { x: 490, y: 1242, w: 520 },
+  montantLettres: { x: 520, y: 1226, w: 490 },
 };
 
 export interface FacturePdfData {
