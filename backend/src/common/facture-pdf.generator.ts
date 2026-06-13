@@ -129,7 +129,7 @@ function splitClientAdresse(adresse: string): { ligne1: string; ville: string } 
   return { ligne1: trimmed, ville: '' };
 }
 
-function wrapDesignation(text: string, maxLen = 48): string[] {
+function wrapDesignation(text: string, maxLen = 38): string[] {
   const words = text.split(/\s+/);
   const lines: string[] = [];
   let current = '';
@@ -174,7 +174,7 @@ export async function generateFactureVentePdf(
   );
   if (ligne1) {
     parts.push(
-      svgBox(ligne1.toUpperCase(), F.client.x, F.client.yAdr1, F.client.w, 15, 'bold'),
+      svgBox(ligne1.toUpperCase(), F.client.x, F.client.yAdr1, F.client.w, 15),
     );
   }
   if (ville) {
@@ -185,7 +185,7 @@ export async function generateFactureVentePdf(
     // Une seule ligne d'adresse sans ville séparée
   }
   if (data.clientIce) {
-    parts.push(svgBox(data.clientIce, F.client.xIce, F.client.yIce, F.client.wIce, 15));
+    parts.push(svgText(data.clientIce, F.client.xIce, F.client.yIce, { size: 15 }));
   }
 
   parts.push(svgBox(data.codeClient, F.codeClient.x, F.codeClient.y, F.codeClient.w, 15));
@@ -212,22 +212,13 @@ export async function generateFactureVentePdf(
 
     const numY = rowY + Math.max(0, (descLines.length - 1) * 8);
     parts.push(
-      svgText(formatMontantFacture(ligne.quantite), F.table.qte.x + F.table.qte.w, numY, {
-        anchor: 'end',
-        size: 14,
-      }),
+      svgBox(formatMontantFacture(ligne.quantite), F.table.qte.x, numY, F.table.qte.w, 14),
     );
     parts.push(
-      svgText(formatMontantFacture(ligne.prixUnitaire), F.table.puHt.x + F.table.puHt.w, numY, {
-        anchor: 'end',
-        size: 14,
-      }),
+      svgBox(formatMontantFacture(ligne.prixUnitaire), F.table.puHt.x, numY, F.table.puHt.w, 14),
     );
     parts.push(
-      svgText(formatMontantFacture(ligne.montantHt), F.table.montantHt.x + F.table.montantHt.w, numY, {
-        anchor: 'end',
-        size: 14,
-      }),
+      svgBox(formatMontantFacture(ligne.montantHt), F.table.montantHt.x, numY, F.table.montantHt.w, 14),
     );
 
     rowY += Math.max(F.table.step, descLines.length * 18);
@@ -235,11 +226,13 @@ export async function generateFactureVentePdf(
   }
 
   parts.push(
-    svgText(
+    svgBox(
       formatMontantFacture(data.totalHt),
-      F.totalHorsTaxe.x + F.totalHorsTaxe.w,
+      F.totalHorsTaxe.x,
       F.totalHorsTaxe.y,
-      { anchor: 'end', size: 14, weight: 'bold' },
+      F.totalHorsTaxe.w,
+      14,
+      'bold',
     ),
   );
   parts.push(
