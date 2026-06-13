@@ -163,10 +163,10 @@ export async function generateFactureVentePdf(
   parts.push(svgText(data.numeroFacture, F.numero.x, F.numero.y, { size: 15 }));
 
   if (data.telephone) {
-    parts.push(svgText(data.telephone, F.telephone.x, F.telephone.y, { size: 16 }));
+    parts.push(svgText(data.telephone, F.telephone.x, F.telephone.y, { size: 16, weight: 'bold' }));
   }
   if (data.mail) {
-    parts.push(svgText(data.mail, F.mail.x, F.mail.y, { size: 18 }));
+    parts.push(svgText(data.mail, F.mail.x, F.mail.y, { size: 18, weight: 'bold' }));
   }
 
   parts.push(
