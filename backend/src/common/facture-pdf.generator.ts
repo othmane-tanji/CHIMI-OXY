@@ -20,14 +20,14 @@ const PAGE_H = 768;
 const F = {
   date: { x: 530, y: 190 },
   numero: { x: 805, y: 190 },
-  telephone: { x: 200, y: 402 },
-  mail: { x: 150, y: 435 },
+  telephone: { x: 200, y: 397 },
+  mail: { x: 150, y: 427 },
   client: {
     x: 540,
     w: 480,
-    yNom: 339,
-    yAdr1: 378,
-    yVille: 405,
+    yNom: 314,
+    yAdr1: 352,
+    yVille: 379,
     xIce: 600,
     wIce: 300,
     yIce: 427,
@@ -170,16 +170,16 @@ export async function generateFactureVentePdf(
   }
 
   parts.push(
-    svgBox(data.clientNom.toUpperCase(), F.client.x, F.client.yNom, F.client.w, 15, 'bold'),
+    svgBox(data.clientNom.toUpperCase(), F.client.x, F.client.yNom, F.client.w, 20, 'bold'),
   );
   if (ligne1) {
     parts.push(
-      svgBox(ligne1.toUpperCase(), F.client.x, F.client.yAdr1, F.client.w, 15),
+      svgBox(ligne1.toUpperCase(), F.client.x, F.client.yAdr1, F.client.w, 16),
     );
   }
   if (ville) {
     parts.push(
-      svgBox(ville.toUpperCase(), F.client.x, F.client.yVille, F.client.w, 18, 'bold'),
+      svgBox(ville.toUpperCase(), F.client.x, F.client.yVille, F.client.w, 19, 'bold'),
     );
   } else if (ligne1 && !ville) {
     // Une seule ligne d'adresse sans ville séparée
