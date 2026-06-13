@@ -175,7 +175,12 @@ export class CongesService {
       );
     }
 
-    const { soldeRestant } = this.buildSolde(employe);
+    const { soldeInitial, soldeRestant } = this.buildSolde(employe);
+    if (soldeInitial === 0) {
+      throw new BadRequestException(
+        'Cet employé a moins de 6 mois d\'ancienneté et n\'a pas droit aux congés.',
+      );
+    }
     if (datesUniques.length > soldeRestant) {
       throw new BadRequestException(
         `Solde insuffisant. Solde restant : ${soldeRestant} jour(s), demandé : ${datesUniques.length}`,

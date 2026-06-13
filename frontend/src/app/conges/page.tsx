@@ -137,7 +137,7 @@ export default function CongesPage() {
     <div>
       <PageHeader
         title="Gestion des congés"
-        description="Sélection des jours exacts d'absence · 18j/an (>1 an) · 9j/an (<1 an)"
+        description="Sélection des jours exacts d'absence · 0j (<6 mois) · 9j/an (≥6 mois) · 18j/an (>1 an)"
         action={
           <button
             onClick={() => {

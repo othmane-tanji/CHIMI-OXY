@@ -1,8 +1,24 @@
-export function getDroitAnnuel(dateEmbauche: Date): number {
-  const now = new Date();
+export function getMoisAnciennete(
+  dateEmbauche: Date,
+  reference: Date = new Date(),
+): number {
+  let months =
+    (reference.getFullYear() - dateEmbauche.getFullYear()) * 12 +
+    (reference.getMonth() - dateEmbauche.getMonth());
+  if (reference.getDate() < dateEmbauche.getDate()) months--;
+  return Math.max(0, months);
+}
+
+/** 0j (<6 mois) · 9j/an (≥6 mois et <1 an) · 18j/an (≥1 an) */
+export function getDroitAnnuel(
+  dateEmbauche: Date,
+  reference: Date = new Date(),
+): number {
+  if (getMoisAnciennete(dateEmbauche, reference) < 6) return 0;
+
   const unAn = new Date(dateEmbauche);
   unAn.setFullYear(unAn.getFullYear() + 1);
-  return now >= unAn ? 18 : 9;
+  return reference >= unAn ? 18 : 9;
 }
 
 export function isDimanche(date: Date): boolean {
