@@ -55,6 +55,7 @@ export default function FacturesPage() {
     montant: '',
   });
   const [formVente, setFormVente] = useState(emptyVenteForm());
+  const [lastFactureNum, setLastFactureNum] = useState('');
 
   const totaux = useMemo(
     () => calculerTotaux(formVente.lignes),
@@ -78,6 +79,24 @@ export default function FacturesPage() {
     clientsApi.getAll().then(setClients);
     fournisseursApi.getAll().then(setFournisseurs);
   }, []);
+
+  useEffect(() => {
+    if (formVente.numeroFacture && formVente.numeroFacture !== lastFactureNum) {
+      setLastFactureNum(formVente.numeroFacture);
+      const parts = formVente.numeroFacture.split('/');
+      if (parts.length === 2) {
+        const YYYY = parts[0];
+        const XXX = parts[1];
+        if (YYYY.length === 4 && !isNaN(parseInt(YYYY, 10)) && !isNaN(parseInt(XXX, 10))) {
+          const yy = YYYY.substring(2);
+          setFormVente((f) => ({
+            ...f,
+            numeroAttach: `${yy}/${XXX}`,
+          }));
+        }
+      }
+    }
+  }, [formVente.numeroFacture, lastFactureNum]);
 
   useEffect(() => {
     if (!modal || tab !== 'vente') return;
