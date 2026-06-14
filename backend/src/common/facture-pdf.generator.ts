@@ -145,15 +145,30 @@ function splitClientAdresse(adresse: string): { ligne1: string; ville: string } 
   const trimmed = adresse.trim();
   if (!trimmed) return { ligne1: '', ville: '' };
 
-  const sep = trimmed.split(/\s*[—–-]\s*/);
-  if (sep.length >= 2) {
-    return { ligne1: sep[0].trim(), ville: sep.slice(1).join(' ').trim() };
-  }
-
+  // First, check if the last word is an uppercase city (>= 3 chars)
   const parts = trimmed.split(/\s+/);
   const last = parts[parts.length - 1];
-  if (parts.length > 1 && last === last.toUpperCase() && last.length >= 3) {
-    return { ligne1: parts.slice(0, -1).join(' '), ville: last };
+  if (parts.length > 1 && last === last.toUpperCase() && last.length >= 3 && /^[A-ZÂÄÉÈÊËÎÏÔÖÙÛÜÇ]+$/.test(last)) {
+    // If the word before the city is a dash, remove it from the address
+    let line1Parts = parts.slice(0, -1);
+    const lastWordBeforeCity = line1Parts[line1Parts.length - 1];
+    if (lastWordBeforeCity === '—' || lastWordBeforeCity === '–' || lastWordBeforeCity === '-') {
+      line1Parts = line1Parts.slice(0, -1);
+    }
+    return { ligne1: line1Parts.join(' ').trim(), ville: last };
+  }
+
+  // Fallback to split by last dash
+  const lastDashIndex = Math.max(
+    trimmed.lastIndexOf('—'),
+    trimmed.lastIndexOf('–'),
+    trimmed.lastIndexOf('-')
+  );
+
+  if (lastDashIndex !== -1) {
+    const ligne1 = trimmed.substring(0, lastDashIndex).trim();
+    const ville = trimmed.substring(lastDashIndex + 1).trim();
+    return { ligne1, ville };
   }
 
   return { ligne1: trimmed, ville: '' };
@@ -206,7 +221,9 @@ export async function generateFactureVentePdf(
   }
 
   // Adjust yNom when address is very long to make space
-  const yNom = addrLines.length >= 3 ? 306 : F.client.yNom;
+  let yNom = F.client.yNom;
+  if (addrLines.length === 2) yNom = 308;
+  else if (addrLines.length >= 3) yNom = 304;
 
   parts.push(
     svgBox(data.clientNom.toUpperCase(), F.client.x, yNom, F.client.w, 24, 'bold'),
@@ -215,38 +232,38 @@ export async function generateFactureVentePdf(
   // Dynamic layout for address lines and ville to prevent overflow
   if (addrLines.length === 1) {
     parts.push(
-      svgBox(addrLines[0].toUpperCase(), F.client.x, 356, F.client.w, 16),
+      svgBox(addrLines[0].toUpperCase(), F.client.x, 346, F.client.w, 16),
     );
     if (ville) {
       parts.push(
-        svgBox(ville.toUpperCase(), F.client.x, 384, F.client.w, 19, 'bold'),
+        svgBox(ville.toUpperCase(), F.client.x, 378, F.client.w, 19, 'bold'),
       );
     }
   } else if (addrLines.length === 2) {
     parts.push(
-      svgBox(addrLines[0].toUpperCase(), F.client.x, 345, F.client.w, 16),
+      svgBox(addrLines[0].toUpperCase(), F.client.x, 334, F.client.w, 16),
     );
     parts.push(
-      svgBox(addrLines[1].toUpperCase(), F.client.x, 368, F.client.w, 16),
+      svgBox(addrLines[1].toUpperCase(), F.client.x, 356, F.client.w, 16),
     );
     if (ville) {
       parts.push(
-        svgBox(ville.toUpperCase(), F.client.x, 391, F.client.w, 19, 'bold'),
+        svgBox(ville.toUpperCase(), F.client.x, 382, F.client.w, 19, 'bold'),
       );
     }
   } else if (addrLines.length >= 3) {
     parts.push(
-      svgBox(addrLines[0].toUpperCase(), F.client.x, 330, F.client.w, 16),
+      svgBox(addrLines[0].toUpperCase(), F.client.x, 328, F.client.w, 16),
     );
     parts.push(
-      svgBox(addrLines[1].toUpperCase(), F.client.x, 350, F.client.w, 16),
+      svgBox(addrLines[1].toUpperCase(), F.client.x, 348, F.client.w, 16),
     );
     parts.push(
-      svgBox(addrLines[2].toUpperCase(), F.client.x, 370, F.client.w, 16),
+      svgBox(addrLines[2].toUpperCase(), F.client.x, 368, F.client.w, 16),
     );
     if (ville) {
       parts.push(
-        svgBox(ville.toUpperCase(), F.client.x, 390, F.client.w, 19, 'bold'),
+        svgBox(ville.toUpperCase(), F.client.x, 388, F.client.w, 19, 'bold'),
       );
     }
   } else {
@@ -259,7 +276,7 @@ export async function generateFactureVentePdf(
 
   if (data.clientIce) {
     parts.push(
-      svgBox(`ICE : ${data.clientIce}`, F.client.x, F.client.yIce, F.client.w, 20, 'bold'),
+      svgBox(`ICE : ${data.clientIce}`, F.client.x, F.client.yIce, F.client.w, 26, 'bold'),
     );
   }
 
