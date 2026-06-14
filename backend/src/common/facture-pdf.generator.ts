@@ -217,7 +217,7 @@ export async function generateFactureVentePdf(
   // Mask pre-printed "R I B" label and draw "CONDITION DE PAIEMENT"
   parts.push(`<rect x="700" y="502" width="270" height="26" fill="#ffffff" />`);
   parts.push(
-    svgBox("CONDITION DE PAIEMENT", F.conditionPaiement.x, 508, F.conditionPaiement.w, 15, 'bold', '#0a4c95'),
+    svgBox("CONDITION DE PAIEMENT", F.conditionPaiement.x, 500, F.conditionPaiement.w, 15, 'bold', '#0a4c95'),
   );
 
   if (data.conditionPaiement) {
