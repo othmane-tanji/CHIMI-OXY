@@ -33,7 +33,7 @@ async function run() {
   const pngPath = path.join(__dirname, '../assets/facture-preview-demo.png');
 
   // Generate PDF using main code
-  await generateFactureVentePdf({ ...data, ...t }, pdfPath);
+  await generateFactureVentePdf({ ...data, ...t, montantEnLettres: 'TROIS-DIX-QUATRE MILLE NEUF CENT CINQ-DIX-SIX DIRHAMS ET 00 CTS.' }, pdfPath);
   console.log('PDF demo generated at:', pdfPath);
 
   // Convert PDF to PNG

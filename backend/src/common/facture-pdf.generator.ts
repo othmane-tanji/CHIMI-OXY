@@ -347,12 +347,47 @@ export async function generateFactureVentePdf(
   parts.push(
     svgBox(formatMontantFacture(data.totalTtc), F.totalTtc.x, F.totalTtc.y, F.totalTtc.w, 21, 'bold'),
   );
-  parts.push(
-    svgText(data.montantEnLettres, F.montantLettres.x, F.montantLettres.y, {
-      size: 16,
-      weight: 'bold',
-    }),
-  );
+  const letterLines = wrapText(data.montantEnLettres, 45);
+  if (letterLines.length === 1) {
+    parts.push(
+      svgText(letterLines[0], F.montantLettres.x, F.montantLettres.y, {
+        size: 16,
+        weight: 'bold',
+      }),
+    );
+  } else if (letterLines.length === 2) {
+    parts.push(
+      svgText(letterLines[0], F.montantLettres.x, 1230, {
+        size: 16,
+        weight: 'bold',
+      }),
+    );
+    parts.push(
+      svgText(letterLines[1], F.montantLettres.x, 1254, {
+        size: 16,
+        weight: 'bold',
+      }),
+    );
+  } else {
+    parts.push(
+      svgText(letterLines[0], F.montantLettres.x, 1222, {
+        size: 16,
+        weight: 'bold',
+      }),
+    );
+    parts.push(
+      svgText(letterLines[1], F.montantLettres.x, 1242, {
+        size: 16,
+        weight: 'bold',
+      }),
+    );
+    parts.push(
+      svgText(letterLines[2], F.montantLettres.x, 1262, {
+        size: 16,
+        weight: 'bold',
+      }),
+    );
+  }
 
   const fontStyle = fonts.MontserratRegular
     ? `<defs>
