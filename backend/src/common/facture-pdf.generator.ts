@@ -180,7 +180,7 @@ export async function generateFactureVentePdf(
   }
 
   parts.push(
-    svgBox(data.clientNom.toUpperCase(), F.client.x, F.client.yNom, F.client.w, 20, 'bold'),
+    svgBox(data.clientNom.toUpperCase(), F.client.x, F.client.yNom, F.client.w, 24, 'bold'),
   );
   if (ligne1) {
     parts.push(
@@ -198,7 +198,7 @@ export async function generateFactureVentePdf(
     // Mask pre-printed "ICE :" label
     parts.push(`<rect x="545" y="412" width="470" height="28" fill="#ffffff" />`);
     parts.push(
-      svgBox(`ICE : ${data.clientIce}`, F.client.x, F.client.yIce, F.client.w, 25, 'bold'),
+      svgBox(`ICE : ${data.clientIce}`, F.client.x, F.client.yIce, F.client.w, 26, 'bold'),
     );
   }
 

@@ -21,8 +21,8 @@ type Tab = 'achat' | 'vente';
 const emptyVenteForm = () => ({
   numeroFacture: '',
   dateFacture: new Date().toISOString().split('T')[0],
-  telephone: '',
-  mail: '',
+  telephone: DEFAULTS_VENTE.telephone,
+  mail: DEFAULTS_VENTE.mail,
   clientId: '',
   clientNom: '',
   clientAdresse: '',

@@ -45,4 +45,6 @@ export const emptyLigne = (): FactureLigneForm => ({
 
 export const DEFAULTS_VENTE = {
   codeClient: 'OX704',
+  telephone: '0662 176 292',
+  mail: 'contact@oxyral.ma',
 };

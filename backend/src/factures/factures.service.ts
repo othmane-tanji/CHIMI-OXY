@@ -23,6 +23,8 @@ import {
 
 const DEFAULTS = {
   codeClient: 'OX704',
+  telephone: '0662 176 292',
+  mail: 'contact@oxyral.ma',
 };
 
 @Injectable()
@@ -220,8 +222,8 @@ export class FacturesService {
         numeroFacture,
         dateFacture,
         montant: totaux.totalTtc,
-        telephone: dto.telephone ?? '',
-        mail: dto.mail ?? '',
+        telephone: dto.telephone || DEFAULTS.telephone,
+        mail: dto.mail || DEFAULTS.mail,
         clientNom: dto.clientNom,
         clientAdresse: dto.clientAdresse,
         clientIce: dto.clientIce,
@@ -282,8 +284,8 @@ export class FacturesService {
       data: {
         numeroFacture: dto.numeroFacture,
         dateFacture: dto.dateFacture ? new Date(dto.dateFacture) : undefined,
-        telephone: dto.telephone,
-        mail: dto.mail,
+        telephone: dto.telephone || DEFAULTS.telephone,
+        mail: dto.mail || DEFAULTS.mail,
         clientNom: dto.clientNom,
         clientAdresse: dto.clientAdresse,
         clientIce: dto.clientIce,
