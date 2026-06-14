@@ -9,4 +9,16 @@ export class UpdateClientDto {
   @IsOptional()
   @IsIn(SOCIETES)
   societe?: SocieteType;
+
+  @IsOptional()
+  @IsString()
+  adresse?: string;
+
+  @IsOptional()
+  @IsString()
+  ville?: string;
+
+  @IsOptional()
+  @IsString()
+  ice?: string;
 }

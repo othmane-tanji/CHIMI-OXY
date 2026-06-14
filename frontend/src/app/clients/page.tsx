@@ -9,7 +9,7 @@ import { Modal } from '@/components/Modal';
 export default function ClientsPage() {
   const [clients, setClients] = useState<any[]>([]);
   const [modal, setModal] = useState(false);
-  const [form, setForm] = useState({ nomClient: '', societe: 'OXYRAL' });
+  const [form, setForm] = useState({ nomClient: '', societe: 'OXYRAL', adresse: '', ville: '', ice: '' });
   const [editId, setEditId] = useState<number | null>(null);
 
   const load = () => clientsApi.getAll().then(setClients);
@@ -26,20 +26,32 @@ export default function ClientsPage() {
   return (
     <div>
       <PageHeader title="Clients" action={
-        <button onClick={() => { setForm({ nomClient: '', societe: 'OXYRAL' }); setEditId(null); setModal(true); }} className="btn-primary flex items-center gap-2">
+        <button onClick={() => { setForm({ nomClient: '', societe: 'OXYRAL', adresse: '', ville: '', ice: '' }); setEditId(null); setModal(true); }} className="btn-primary flex items-center gap-2">
           <Plus size={16} /> Ajouter
         </button>
       } />
       <div className="card overflow-x-auto">
         <table className="w-full">
-          <thead><tr className="border-b dark:border-gray-800"><th className="table-th">Nom</th><th className="table-th">Société</th><th className="table-th">Actions</th></tr></thead>
+          <thead>
+            <tr className="border-b dark:border-gray-800">
+              <th className="table-th">Nom</th>
+              <th className="table-th">Société</th>
+              <th className="table-th">ICE</th>
+              <th className="table-th">Adresse</th>
+              <th className="table-th">Ville</th>
+              <th className="table-th">Actions</th>
+            </tr>
+          </thead>
           <tbody>
             {clients.map((c) => (
               <tr key={c.id} className="border-b border-gray-100 dark:border-gray-800">
                 <td className="table-td font-medium">{c.nomClient}</td>
                 <td className="table-td">{c.societe}</td>
+                <td className="table-td">{c.ice || '-'}</td>
+                <td className="table-td">{c.adresse || '-'}</td>
+                <td className="table-td">{c.ville || '-'}</td>
                 <td className="table-td">
-                  <button onClick={() => { setForm({ nomClient: c.nomClient, societe: c.societe }); setEditId(c.id); setModal(true); }} className="btn-secondary mr-2 text-xs">Modifier</button>
+                  <button onClick={() => { setForm({ nomClient: c.nomClient, societe: c.societe, adresse: c.adresse || '', ville: c.ville || '', ice: c.ice || '' }); setEditId(c.id); setModal(true); }} className="btn-secondary mr-2 text-xs">Modifier</button>
                   <button onClick={async () => { if (confirm('Supprimer ?')) { await clientsApi.remove(c.id); load(); } }} className="btn-danger text-xs">Supprimer</button>
                 </td>
               </tr>
@@ -55,6 +67,9 @@ export default function ClientsPage() {
               <option value="OXYRAL">Oxyral</option><option value="CHIMIRAL">Chimiral</option>
             </select>
           </div>
+          <div><label className="label">ICE</label><input className="input" value={form.ice} onChange={(e) => setForm({ ...form, ice: e.target.value })} /></div>
+          <div><label className="label">Adresse</label><input className="input" value={form.adresse} onChange={(e) => setForm({ ...form, adresse: e.target.value })} /></div>
+          <div><label className="label">Ville</label><input className="input" value={form.ville} onChange={(e) => setForm({ ...form, ville: e.target.value })} /></div>
           <div className="flex justify-end gap-2"><button type="button" onClick={() => setModal(false)} className="btn-secondary">Annuler</button><button type="submit" className="btn-primary">{editId ? 'Modifier' : 'Créer'}</button></div>
         </form>
       </Modal>
