@@ -155,13 +155,13 @@ export const facturesApi = {
       body: JSON.stringify({ lignes }),
     }),
   createAchat: (data: any) =>
-    api('/factures/achat', { method: 'POST', body: JSON.stringify(data) }),
+    api<any>('/factures/achat', { method: 'POST', body: JSON.stringify(data) }),
   createVente: (data: any) =>
-    api('/factures/vente', { method: 'POST', body: JSON.stringify(data) }),
+    api<any>('/factures/vente', { method: 'POST', body: JSON.stringify(data) }),
   updateAchat: (id: number, data: any) =>
-    api(`/factures/achat/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    api<any>(`/factures/achat/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   updateVente: (id: number, data: any) =>
-    api(`/factures/vente/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    api<any>(`/factures/vente/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   removeAchat: (id: number) => api(`/factures/achat/${id}`, { method: 'DELETE' }),
   removeVente: (id: number) => api(`/factures/vente/${id}`, { method: 'DELETE' }),
   downloadVentePdf: async (id: number, filename: string) => {

@@ -28,8 +28,8 @@ if (fs.existsSync(FONTS_JSON)) {
  * Coordonnées calibrées sur TEMPLATE-OXYRAL.png (1086×1448 px)
  */
 const F = {
-  date: { x: 530, y: 185 },
-  numero: { x: 805, y: 185 },
+  date: { x: 555, y: 185 },
+  numero: { x: 825, y: 185 },
   telephone: { x: 200, y: 396 },
   mail: { x: 150, y: 421 },
   client: {
@@ -56,9 +56,9 @@ const F = {
     montantHt: { x: 832, w: 180 },
   },
   totalHorsTaxe: { x: 832, y: 992, w: 180 },
-  totalHt: { x: 56, y: 1115, w: 356 },
-  totalTva: { x: 412, y: 1115, w: 300 },
-  totalTtc: { x: 712, y: 1115, w: 308 },
+  totalHt: { x: 56, y: 1145, w: 356 },
+  totalTva: { x: 412, y: 1145, w: 300 },
+  totalTtc: { x: 712, y: 1145, w: 308 },
   montantLettres: { x: 530, y: 1227, w: 480 },
 };
 
@@ -214,11 +214,7 @@ export async function generateFactureVentePdf(
       svgBox(data.numeroAttach, F.numeroAttach.x, F.numeroAttach.y, F.numeroAttach.w, 19, 'bold'),
     );
   }
-  // Mask pre-printed "R I B" label and draw "CONDITION DE PAIEMENT"
-  parts.push(`<rect x="700" y="502" width="270" height="26" fill="#ffffff" />`);
-  parts.push(
-    svgBox("CONDITION DE PAIEMENT", F.conditionPaiement.x, 500, F.conditionPaiement.w, 15, 'bold', '#0a4c95'),
-  );
+
 
   if (data.conditionPaiement) {
     parts.push(
@@ -304,6 +300,7 @@ export async function generateFactureVentePdf(
 
   const svg = `<svg width="${IMG_W}" height="${IMG_H}" xmlns="http://www.w3.org/2000/svg">${fontStyle}${parts.join('')}</svg>`;
   const composed = await sharp(TEMPLATE)
+    .resize(IMG_W, IMG_H)
     .composite([{ input: Buffer.from(svg), top: 0, left: 0 }])
     .png()
     .toBuffer();
