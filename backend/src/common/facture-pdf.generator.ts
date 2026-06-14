@@ -9,10 +9,20 @@ import {
 } from './facture.utils';
 
 const TEMPLATE = path.join(process.cwd(), 'assets', 'facture-template.png');
+const FONTS_JSON = path.join(process.cwd(), 'assets', 'fonts.json');
 const IMG_W = 1086;
 const IMG_H = 1448;
 const PAGE_W = 576;
 const PAGE_H = 768;
+
+let fonts: any = {};
+if (fs.existsSync(FONTS_JSON)) {
+  try {
+    fonts = JSON.parse(fs.readFileSync(FONTS_JSON, 'utf-8'));
+  } catch (err) {
+    console.error('Failed to parse fonts.json', err);
+  }
+}
 
 /**
  * Coordonnées calibrées sur TEMPLATE-OXYRAL.png (1086×1448 px)
@@ -97,7 +107,7 @@ function svgText(
   let px = x;
   if (anchor === 'middle' && opts.width) px = x + opts.width / 2;
   if (anchor === 'end') px = x;
-  return `<text x="${px}" y="${y + size}" font-family="Arial,Helvetica,sans-serif" font-size="${size}" font-weight="${opts.weight ?? 'normal'}" text-anchor="${anchor}" fill="#1a1a1a">${esc(text)}</text>`;
+  return `<text x="${px}" y="${y + size}" font-family="Montserrat, Arial, Helvetica, sans-serif" font-size="${size}" font-weight="${opts.weight ?? 'normal'}" text-anchor="${anchor}" fill="#1a1a1a">${esc(text)}</text>`;
 }
 
 function svgBox(
@@ -255,7 +265,26 @@ export async function generateFactureVentePdf(
     }),
   );
 
-  const svg = `<svg width="${IMG_W}" height="${IMG_H}" xmlns="http://www.w3.org/2000/svg">${parts.join('')}</svg>`;
+  const fontStyle = fonts.MontserratRegular
+    ? `<defs>
+        <style type="text/css">
+          @font-face {
+            font-family: 'Montserrat';
+            src: url(data:font/truetype;charset=utf-8;base64,${fonts.MontserratRegular}) format('truetype');
+            font-weight: normal;
+            font-style: normal;
+          }
+          @font-face {
+            font-family: 'Montserrat';
+            src: url(data:font/truetype;charset=utf-8;base64,${fonts.MontserratBold}) format('truetype');
+            font-weight: bold;
+            font-style: normal;
+          }
+        </style>
+      </defs>`
+    : '';
+
+  const svg = `<svg width="${IMG_W}" height="${IMG_H}" xmlns="http://www.w3.org/2000/svg">${fontStyle}${parts.join('')}</svg>`;
   const composed = await sharp(TEMPLATE)
     .composite([{ input: Buffer.from(svg), top: 0, left: 0 }])
     .png()
