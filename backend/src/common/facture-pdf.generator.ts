@@ -188,21 +188,21 @@ export async function generateFactureVentePdf(
     // Mask pre-printed "ICE :" label
     parts.push(`<rect x="545" y="412" width="470" height="28" fill="#ffffff" />`);
     parts.push(
-      svgBox(`ICE : ${data.clientIce}`, F.client.x, F.client.yIce, F.client.w, 16, 'bold'),
+      svgBox(`ICE : ${data.clientIce}`, F.client.x, F.client.yIce, F.client.w, 25, 'bold'),
     );
   }
 
-  parts.push(svgBox(data.codeClient, F.codeClient.x, F.codeClient.y, F.codeClient.w, 17, 'bold'));
+  parts.push(svgBox(data.codeClient, F.codeClient.x, F.codeClient.y, F.codeClient.w, 19, 'bold'));
   if (data.bonCommande) {
-    parts.push(svgBox(data.bonCommande, F.bonCommande.x, F.bonCommande.y, F.bonCommande.w, 17, 'bold'));
+    parts.push(svgBox(data.bonCommande, F.bonCommande.x, F.bonCommande.y, F.bonCommande.w, 19, 'bold'));
   }
   if (data.numeroAttach) {
     parts.push(
-      svgBox(data.numeroAttach, F.numeroAttach.x, F.numeroAttach.y, F.numeroAttach.w, 17, 'bold'),
+      svgBox(data.numeroAttach, F.numeroAttach.x, F.numeroAttach.y, F.numeroAttach.w, 19, 'bold'),
     );
   }
   if (data.rib) {
-    parts.push(svgBox(data.rib, F.rib.x, F.rib.y, F.rib.w, 15, 'bold'));
+    parts.push(svgBox(data.rib, F.rib.x, F.rib.y, F.rib.w, 17, 'bold'));
   }
 
   let rowY = F.table.y0;
