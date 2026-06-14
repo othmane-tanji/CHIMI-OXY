@@ -357,13 +357,13 @@ export async function generateFactureVentePdf(
     );
   } else if (letterLines.length === 2) {
     parts.push(
-      svgText(letterLines[0], F.montantLettres.x, 1230, {
+      svgText(letterLines[0], F.montantLettres.x, 1243, {
         size: 16,
         weight: 'bold',
       }),
     );
     parts.push(
-      svgText(letterLines[1], F.montantLettres.x, 1254, {
+      svgText(letterLines[1], F.montantLettres.x, 1267, {
         size: 16,
         weight: 'bold',
       }),
