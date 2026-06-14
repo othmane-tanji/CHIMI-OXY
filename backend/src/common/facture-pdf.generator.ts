@@ -28,10 +28,10 @@ if (fs.existsSync(FONTS_JSON)) {
  * Coordonnées calibrées sur TEMPLATE-OXYRAL.png (1086×1448 px)
  */
 const F = {
-  date: { x: 555, y: 185 },
-  numero: { x: 825, y: 185 },
-  telephone: { x: 200, y: 396 },
-  mail: { x: 150, y: 421 },
+  date: { x: 555, y: 187 },
+  numero: { x: 825, y: 187 },
+  telephone: { x: 200, y: 402 },
+  mail: { x: 150, y: 429 },
   client: {
     x: 540,
     w: 480,
@@ -43,8 +43,8 @@ const F = {
     yIce: 418,
   },
   codeClient: { x: 56, y: 539, w: 186 },
-  bonCommande: { x: 242, y: 539, w: 220 },
-  numeroAttach: { x: 462, y: 539, w: 188 },
+  bonCommande: { x: 250, y: 539, w: 220 },
+  numeroAttach: { x: 482, y: 539, w: 188 },
   conditionPaiement: { x: 650, y: 541, w: 370 },
   table: {
     y0: 640,
@@ -55,11 +55,11 @@ const F = {
     puHt: { x: 708, w: 116 },
     montantHt: { x: 832, w: 180 },
   },
-  totalHorsTaxe: { x: 832, y: 992, w: 180 },
+  totalHorsTaxe: { x: 832, y: 1028, w: 180 },
   totalHt: { x: 56, y: 1145, w: 356 },
   totalTva: { x: 412, y: 1145, w: 300 },
   totalTtc: { x: 712, y: 1145, w: 308 },
-  montantLettres: { x: 530, y: 1227, w: 480 },
+  montantLettres: { x: 510, y: 1243, w: 480 },
 };
 
 export interface FacturePdfData {
@@ -176,7 +176,7 @@ export async function generateFactureVentePdf(
   parts.push(svgText(data.numeroFacture, F.numero.x, F.numero.y, { size: 21, weight: 'bold' }));
 
   if (data.telephone) {
-    parts.push(svgText(data.telephone, F.telephone.x, F.telephone.y, { size: 18, weight: 'bold' }));
+    parts.push(svgText(data.telephone, F.telephone.x, F.telephone.y, { size: 19, weight: 'bold' }));
   }
   if (data.mail) {
     parts.push(svgText(data.mail, F.mail.x, F.mail.y, { size: 20, weight: 'bold' }));
@@ -223,7 +223,7 @@ export async function generateFactureVentePdf(
         F.conditionPaiement.x,
         F.conditionPaiement.y,
         F.conditionPaiement.w,
-        17,
+        18,
         'bold',
       ),
     );
@@ -234,19 +234,19 @@ export async function generateFactureVentePdf(
     const descLines = wrapDesignation(ligne.designation);
     descLines.forEach((line, i) => {
       parts.push(
-        svgText(line, F.table.designation.x, rowY + i * 22, { size: 18, weight: 'bold' }),
+        svgText(line, F.table.designation.x, rowY + i * 22, { size: 19, weight: 'bold' }),
       );
     });
 
     const numY = rowY + Math.max(0, (descLines.length - 1) * 11);
     parts.push(
-      svgBox(formatMontantFacture(ligne.quantite), F.table.qte.x, numY, F.table.qte.w, 18, 'bold'),
+      svgBox(formatMontantFacture(ligne.quantite), F.table.qte.x, numY, F.table.qte.w, 19, 'bold'),
     );
     parts.push(
-      svgBox(formatMontantFacture(ligne.prixUnitaire), F.table.puHt.x, numY, F.table.puHt.w, 18, 'bold'),
+      svgBox(formatMontantFacture(ligne.prixUnitaire), F.table.puHt.x, numY, F.table.puHt.w, 19, 'bold'),
     );
     parts.push(
-      svgBox(formatMontantFacture(ligne.montantHt), F.table.montantHt.x, numY, F.table.montantHt.w, 18, 'bold'),
+      svgBox(formatMontantFacture(ligne.montantHt), F.table.montantHt.x, numY, F.table.montantHt.w, 19, 'bold'),
     );
 
     rowY += Math.max(F.table.step, descLines.length * 24) + 12;
@@ -259,7 +259,7 @@ export async function generateFactureVentePdf(
       F.totalHorsTaxe.x,
       F.totalHorsTaxe.y,
       F.totalHorsTaxe.w,
-      18,
+      19,
       'bold',
     ),
   );
@@ -274,7 +274,7 @@ export async function generateFactureVentePdf(
   );
   parts.push(
     svgText(data.montantEnLettres, F.montantLettres.x, F.montantLettres.y, {
-      size: 15,
+      size: 16,
       weight: 'bold',
     }),
   );
