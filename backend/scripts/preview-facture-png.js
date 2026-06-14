@@ -16,7 +16,7 @@ const data = {
   codeClient: 'OX704',
   bonCommande: 'GT/202600213',
   numeroAttach: '26/023',
-  rib: 'SG 022 780 000 024 00 060 756 80 74',
+  conditionPaiement: 'VIREMENT',
 };
 
 const t = calculerFactureVente([

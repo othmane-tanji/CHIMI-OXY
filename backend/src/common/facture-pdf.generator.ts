@@ -45,7 +45,7 @@ const F = {
   codeClient: { x: 56, y: 539, w: 186 },
   bonCommande: { x: 242, y: 539, w: 220 },
   numeroAttach: { x: 462, y: 539, w: 188 },
-  rib: { x: 650, y: 541, w: 370 },
+  conditionPaiement: { x: 650, y: 541, w: 370 },
   table: {
     y0: 640,
     step: 38,
@@ -73,7 +73,7 @@ export interface FacturePdfData {
   codeClient: string;
   bonCommande?: string | null;
   numeroAttach?: string | null;
-  rib?: string | null;
+  conditionPaiement?: string | null;
   lignes: FactureLigneCalc[];
   totalHt: number;
   totalTva: number;
@@ -99,6 +99,7 @@ function svgText(
     weight?: string;
     anchor?: 'start' | 'middle' | 'end';
     width?: number;
+    fill?: string;
   } = {},
 ): string {
   if (!text) return '';
@@ -107,7 +108,8 @@ function svgText(
   let px = x;
   if (anchor === 'middle' && opts.width) px = x + opts.width / 2;
   if (anchor === 'end') px = x;
-  return `<text x="${px}" y="${y + size}" font-family="Montserrat, Arial, Helvetica, sans-serif" font-size="${size}" font-weight="${opts.weight ?? 'normal'}" text-anchor="${anchor}" fill="#1a1a1a">${esc(text)}</text>`;
+  const fill = opts.fill ?? '#1a1a1a';
+  return `<text x="${px}" y="${y + size}" font-family="Montserrat, Arial, Helvetica, sans-serif" font-size="${size}" font-weight="${opts.weight ?? 'normal'}" text-anchor="${anchor}" fill="${fill}">${esc(text)}</text>`;
 }
 
 function svgBox(
@@ -117,8 +119,9 @@ function svgBox(
   w: number,
   size = 11,
   weight = 'normal',
+  fill?: string,
 ): string {
-  return svgText(text, x, y, { size, weight, anchor: 'middle', width: w });
+  return svgText(text, x, y, { size, weight, anchor: 'middle', width: w, fill });
 }
 
 function splitClientAdresse(adresse: string): { ligne1: string; ville: string } {
@@ -211,8 +214,23 @@ export async function generateFactureVentePdf(
       svgBox(data.numeroAttach, F.numeroAttach.x, F.numeroAttach.y, F.numeroAttach.w, 19, 'bold'),
     );
   }
-  if (data.rib) {
-    parts.push(svgBox(data.rib, F.rib.x, F.rib.y, F.rib.w, 17, 'bold'));
+  // Mask pre-printed "R I B" label and draw "CONDITION DE PAIEMENT"
+  parts.push(`<rect x="700" y="502" width="270" height="26" fill="#ffffff" />`);
+  parts.push(
+    svgBox("CONDITION DE PAIEMENT", F.conditionPaiement.x, 508, F.conditionPaiement.w, 15, 'bold', '#0a4c95'),
+  );
+
+  if (data.conditionPaiement) {
+    parts.push(
+      svgBox(
+        data.conditionPaiement.toUpperCase(),
+        F.conditionPaiement.x,
+        F.conditionPaiement.y,
+        F.conditionPaiement.w,
+        17,
+        'bold',
+      ),
+    );
   }
 
   let rowY = F.table.y0;

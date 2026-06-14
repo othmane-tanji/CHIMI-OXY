@@ -30,7 +30,7 @@ const emptyVenteForm = () => ({
   codeClient: DEFAULTS_VENTE.codeClient,
   bonCommande: '',
   numeroAttach: '',
-  rib: '',
+  conditionPaiement: 'CHÈQUE',
   lignes: [emptyLigne()],
   sequenceConfig: '',
 });
@@ -150,7 +150,7 @@ export default function FacturesPage() {
         codeClient: full.codeClient,
         bonCommande: full.bonCommande || '',
         numeroAttach: full.numeroAttach || '',
-        rib: full.rib || '',
+        conditionPaiement: full.conditionPaiement || 'CHÈQUE',
         lignes: full.lignes?.length
           ? full.lignes.map((l: any) => ({
               designation: l.designation,
@@ -237,7 +237,7 @@ export default function FacturesPage() {
         codeClient: formVente.codeClient,
         bonCommande: formVente.bonCommande || undefined,
         numeroAttach: formVente.numeroAttach || undefined,
-        rib: formVente.rib || undefined,
+        conditionPaiement: formVente.conditionPaiement || undefined,
         lignes,
       };
       let saved;
@@ -526,8 +526,17 @@ export default function FacturesPage() {
               <input className="input" value={formVente.numeroAttach} onChange={(e) => setFormVente({ ...formVente, numeroAttach: e.target.value })} />
             </div>
             <div>
-              <label className="label">RIB</label>
-              <input className="input" value={formVente.rib} onChange={(e) => setFormVente({ ...formVente, rib: e.target.value })} />
+              <label className="label">Condition de Paiement</label>
+              <select
+                className="input"
+                value={formVente.conditionPaiement}
+                onChange={(e) => setFormVente({ ...formVente, conditionPaiement: e.target.value })}
+              >
+                <option value="CHÈQUE">CHÈQUE</option>
+                <option value="ESPÈCES">ESPÈCES</option>
+                <option value="EFFETS">EFFETS</option>
+                <option value="VIREMENT">VIREMENT</option>
+              </select>
             </div>
           </div>
 

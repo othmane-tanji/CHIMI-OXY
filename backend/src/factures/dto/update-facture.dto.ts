@@ -67,7 +67,7 @@ export class UpdateFactureVenteDto {
 
   @IsOptional()
   @IsString()
-  rib?: string;
+  conditionPaiement?: string;
 
   @IsOptional()
   @IsArray()

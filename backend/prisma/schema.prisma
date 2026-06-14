@@ -144,7 +144,7 @@ model FactureVente {
   codeClient       String   @default("OX704") @map("code_client")
   bonCommande      String?  @map("bon_commande")
   numeroAttach     String?  @map("numero_attach")
-  rib              String?
+  conditionPaiement String?  @map("condition_paiement")
   totalHt          Decimal  @default(0) @map("total_ht")
   totalTva         Decimal  @default(0) @map("total_tva")
   totalTtc         Decimal  @default(0) @map("total_ttc")

@@ -81,7 +81,7 @@ export class CreateFactureVenteDto {
 
   @IsOptional()
   @IsString()
-  rib?: string;
+  conditionPaiement?: string;
 
   @IsArray()
   @ValidateNested({ each: true })
