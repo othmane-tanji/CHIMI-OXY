@@ -221,9 +221,9 @@ export async function generateFactureVentePdf(
   }
 
   // Adjust yNom when address is very long to make space
-  let yNom = F.client.yNom;
-  if (addrLines.length === 2) yNom = 308;
-  else if (addrLines.length >= 3) yNom = 304;
+  let yNom = F.client.yNom - 10;
+  if (addrLines.length === 2) yNom = 298;
+  else if (addrLines.length >= 3) yNom = 292;
 
   parts.push(
     svgBox(data.clientNom.toUpperCase(), F.client.x, yNom, F.client.w, 24, 'bold'),
