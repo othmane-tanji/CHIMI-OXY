@@ -124,6 +124,23 @@ function svgBox(
   return svgText(text, x, y, { size, weight, anchor: 'middle', width: w, fill });
 }
 
+function wrapText(text: string, maxLen = 45): string[] {
+  const words = text.trim().split(/\s+/);
+  const lines: string[] = [];
+  let current = '';
+  for (const word of words) {
+    const next = current ? `${current} ${word}` : word;
+    if (next.length > maxLen && current) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = next;
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
+}
+
 function splitClientAdresse(adresse: string): { ligne1: string; ville: string } {
   const trimmed = adresse.trim();
   if (!trimmed) return { ligne1: '', ville: '' };
@@ -162,7 +179,7 @@ function wrapDesignation(text: string, maxLen = 38): string[] {
 export async function generateFactureVentePdf(
   data: FacturePdfData,
   outputPath: string,
-): Promise<void> {
+ ): Promise<void> {
   if (!fs.existsSync(TEMPLATE)) {
     throw new Error(
       `Modèle introuvable : ${TEMPLATE}. Placez facture-template.png dans backend/assets/`,
@@ -171,6 +188,7 @@ export async function generateFactureVentePdf(
 
   const parts: string[] = [];
   const { ligne1, ville } = splitClientAdresse(data.clientAdresse);
+  const addrLines = wrapText(ligne1, 45);
 
   parts.push(svgText(formatDateFacture(data.dateFacture), F.date.x, F.date.y, { size: 21, weight: 'bold' }));
   parts.push(svgText(data.numeroFacture, F.numero.x, F.numero.y, { size: 21, weight: 'bold' }));
@@ -182,26 +200,66 @@ export async function generateFactureVentePdf(
     parts.push(svgText(data.mail, F.mail.x, F.mail.y, { size: 20, weight: 'bold' }));
   }
 
-  parts.push(
-    svgBox(data.clientNom.toUpperCase(), F.client.x, F.client.yNom, F.client.w, 24, 'bold'),
-  );
-  if (ligne1) {
-    parts.push(
-      svgBox(ligne1.toUpperCase(), F.client.x, F.client.yAdr1, F.client.w, 16),
-    );
-  }
-  if (ville) {
-    parts.push(
-      svgBox(ville.toUpperCase(), F.client.x, F.client.yVille, F.client.w, 19, 'bold'),
-    );
-  } else if (ligne1 && !ville) {
-    // Une seule ligne d'adresse sans ville séparée
-  }
   if (data.clientIce) {
-    // Mask pre-printed "ICE :" label
+    // Mask pre-printed "ICE :" label first
     parts.push(`<rect x="545" y="412" width="470" height="28" fill="#ffffff" />`);
+  }
+
+  // Adjust yNom when address is very long to make space
+  const yNom = addrLines.length >= 3 ? 306 : F.client.yNom;
+
+  parts.push(
+    svgBox(data.clientNom.toUpperCase(), F.client.x, yNom, F.client.w, 24, 'bold'),
+  );
+
+  // Dynamic layout for address lines and ville to prevent overflow
+  if (addrLines.length === 1) {
     parts.push(
-      svgBox(`ICE : ${data.clientIce}`, F.client.x, F.client.yIce, F.client.w, 26, 'bold'),
+      svgBox(addrLines[0].toUpperCase(), F.client.x, 356, F.client.w, 16),
+    );
+    if (ville) {
+      parts.push(
+        svgBox(ville.toUpperCase(), F.client.x, 384, F.client.w, 19, 'bold'),
+      );
+    }
+  } else if (addrLines.length === 2) {
+    parts.push(
+      svgBox(addrLines[0].toUpperCase(), F.client.x, 345, F.client.w, 16),
+    );
+    parts.push(
+      svgBox(addrLines[1].toUpperCase(), F.client.x, 368, F.client.w, 16),
+    );
+    if (ville) {
+      parts.push(
+        svgBox(ville.toUpperCase(), F.client.x, 391, F.client.w, 19, 'bold'),
+      );
+    }
+  } else if (addrLines.length >= 3) {
+    parts.push(
+      svgBox(addrLines[0].toUpperCase(), F.client.x, 330, F.client.w, 16),
+    );
+    parts.push(
+      svgBox(addrLines[1].toUpperCase(), F.client.x, 350, F.client.w, 16),
+    );
+    parts.push(
+      svgBox(addrLines[2].toUpperCase(), F.client.x, 370, F.client.w, 16),
+    );
+    if (ville) {
+      parts.push(
+        svgBox(ville.toUpperCase(), F.client.x, 390, F.client.w, 19, 'bold'),
+      );
+    }
+  } else {
+    if (ville) {
+      parts.push(
+        svgBox(ville.toUpperCase(), F.client.x, 370, F.client.w, 19, 'bold'),
+      );
+    }
+  }
+
+  if (data.clientIce) {
+    parts.push(
+      svgBox(`ICE : ${data.clientIce}`, F.client.x, F.client.yIce, F.client.w, 20, 'bold'),
     );
   }
 

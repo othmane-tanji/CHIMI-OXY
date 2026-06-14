@@ -11,7 +11,7 @@ const data = {
   telephone: '0662 176 292',
   mail: 'contact@oxyral.ma',
   clientNom: 'PRIMARIOS',
-  clientAdresse: 'Hay hakam rue 92 tit mellil CASABLANCA',
+  clientAdresse: 'CASABLANCA 20270 NEARSHORE PARK MOROCCO SHORE 10, N°401 02 502 1100 BD AL QODS , SIDI MAAROUD CASABLANCA',
   clientIce: '001529775000033',
   codeClient: 'OX704',
   bonCommande: 'GT/202600213',
