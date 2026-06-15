@@ -68,13 +68,13 @@ export interface CalculBulletinResult {
 }
 
 export function calculerBulletin(input: CalculBulletinInput): CalculBulletinResult {
-  const joursAttendus = JOURS_APPOINTEMENT_BASE - input.joursAbsents;
+  const joursAttendus = JOURS_APPOINTEMENT_BASE;
   const avertissement =
     input.nombreJours !== joursAttendus
-      ? `Cet employé a ${input.joursAbsents} jour(s) d'absence ce mois. ` +
-        `Le nombre d'appointements attendu est ${joursAttendus} jour(s) ` +
-        `(26 − ${input.joursAbsents}), pas ${input.nombreJours}.`
+      ? `Le nombre d'appointements attendu est ${joursAttendus} jour(s) ` +
+        ` (26), pas ${input.nombreJours}.`
       : null;
+
 
   const { fin } = getPeriodeMois(input.mois, input.annee);
   const tauxJournalier = round2(input.salaireBase / JOURS_APPOINTEMENT_BASE);

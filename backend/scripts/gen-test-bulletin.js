@@ -1,5 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
-const { generateBulletinPaiePdf } = require('../dist/src/common/bulletin-pdf.generator');
+const { generateBulletinPaiePdf } = require('../dist/common/bulletin-pdf.generator');
 const path = require('path');
 
 async function main() {

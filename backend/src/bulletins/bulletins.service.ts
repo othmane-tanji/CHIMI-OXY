@@ -51,7 +51,7 @@ export class BulletinsService {
     if (!employe) throw new NotFoundException('Employé non trouvé');
 
     const joursAbsents = await this.countAbsencesMois(employeId, mois, annee);
-    const joursAttendus = JOURS_APPOINTEMENT_BASE - joursAbsents;
+    const joursAttendus = JOURS_APPOINTEMENT_BASE;
     const jours = nombreJours ?? joursAttendus;
 
     const calcul = calculerBulletin({
