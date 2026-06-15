@@ -27,7 +27,48 @@ if (fs.existsSync(FONTS_JSON)) {
 /**
  * Coordonnées calibrées sur TEMPLATE-OXYRAL.png (1086×1448 px)
  */
-const F = {
+/**
+ * Coordonnées calibrées sur TEMPLATE-OXYRAL.png (1086×1448 px)
+ */
+const F_OXYRAL = {
+  date: { x: 555, y: 187 },
+  numero: { x: 825, y: 187 },
+  telephone: { x: 200, y: 402 },
+  mail: { x: 150, y: 429 },
+  client: {
+    x: 540,
+    w: 480,
+    yNom: 314,
+    yAdr1: 352,
+    yVille: 379,
+    xIce: 600,
+    wIce: 300,
+    yIce: 418,
+  },
+  codeClient: { x: 56, y: 539, w: 186 },
+  bonCommande: { x: 250, y: 539, w: 220 },
+  numeroAttach: { x: 482, y: 539, w: 188 },
+  conditionPaiement: { x: 650, y: 541, w: 370 },
+  table: {
+    y0: 640,
+    step: 38,
+    maxRows: 12,
+    designation: { x: 185, w: 395 },
+    qte: { x: 588, w: 112 },
+    puHt: { x: 708, w: 116 },
+    montantHt: { x: 832, w: 180 },
+  },
+  totalHorsTaxe: { x: 832, y: 1028, w: 180 },
+  totalHt: { x: 56, y: 1145, w: 356 },
+  totalTva: { x: 412, y: 1145, w: 300 },
+  totalTtc: { x: 712, y: 1145, w: 308 },
+  montantLettres: { x: 510, y: 1243, w: 480 },
+};
+
+/**
+ * Coordonnées calibrées sur TEMPLATE-CHIMIRAL.png (1086×1448 px) - personnalisables pour Chimiral
+ */
+const F_CHIMIRAL = {
   date: { x: 555, y: 187 },
   numero: { x: 825, y: 187 },
   telephone: { x: 200, y: 402 },
@@ -196,6 +237,7 @@ export async function generateFactureVentePdf(
   data: FacturePdfData,
   outputPath: string,
  ): Promise<void> {
+  const F = data.societe === 'CHIMIRAL' ? F_CHIMIRAL : F_OXYRAL;
   const templateName = data.societe === 'CHIMIRAL' ? 'facture-template-chimiral.png' : 'facture-template.png';
   const templatePath = path.join(process.cwd(), 'assets', templateName);
   if (!fs.existsSync(templatePath)) {
