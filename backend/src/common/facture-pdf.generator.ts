@@ -12,8 +12,8 @@ const TEMPLATE = path.join(process.cwd(), 'assets', 'facture-template.png');
 const FONTS_JSON = path.join(process.cwd(), 'assets', 'fonts.json');
 const IMG_W = 1086;
 const IMG_H = 1448;
-const PAGE_W = 576;
-const PAGE_H = 768;
+const PAGE_W = 595.276;
+const PAGE_H = 841.89;
 
 let fonts: any = {};
 if (fs.existsSync(FONTS_JSON)) {
@@ -88,7 +88,7 @@ const F_CHIMIRAL = {
   numeroAttach: { x: 492, y: 560, w: 188 },
   conditionPaiement: { x: 655, y: 560, w: 370 },
   table: {
-    y0: 648,
+    y0: 670,
     step: 38,
     maxRows: 12,
     designation: { x: 185, w: 395 },
@@ -100,7 +100,7 @@ const F_CHIMIRAL = {
   totalHt: { x: 56, y: 1145, w: 356 },
   totalTva: { x: 412, y: 1145, w: 300 },
   totalTtc: { x: 712, y: 1145, w: 308 },
-  montantLettres: { x: 510, y: 1243, w: 480 },
+  montantLettres: { x: 515, y: 1246, w: 480 },
 };
 
 export interface FacturePdfData {
