@@ -69,10 +69,10 @@ const F_OXYRAL = {
  * Coordonnées calibrées sur TEMPLATE-CHIMIRAL.png (1086×1448 px) - personnalisables pour Chimiral
  */
 const F_CHIMIRAL = {
-  date: { x: 555, y: 187 },
-  numero: { x: 825, y: 187 },
-  telephone: { x: 200, y: 402 },
-  mail: { x: 150, y: 429 },
+  date: { x: 585, y: 186 },
+  numero: { x: 825, y: 186 },
+  telephone: { x: 200, y: 407 },
+  mail: { x: 150, y: 436 },
   client: {
     x: 540,
     w: 480,
@@ -83,12 +83,12 @@ const F_CHIMIRAL = {
     wIce: 300,
     yIce: 418,
   },
-  codeClient: { x: 56, y: 539, w: 186 },
-  bonCommande: { x: 250, y: 539, w: 220 },
-  numeroAttach: { x: 482, y: 539, w: 188 },
-  conditionPaiement: { x: 650, y: 541, w: 370 },
+  codeClient: { x: 62, y: 560, w: 186 },
+  bonCommande: { x: 260, y: 560, w: 220 },
+  numeroAttach: { x: 492, y: 560, w: 188 },
+  conditionPaiement: { x: 655, y: 560, w: 370 },
   table: {
-    y0: 640,
+    y0: 648,
     step: 38,
     maxRows: 12,
     designation: { x: 185, w: 395 },
