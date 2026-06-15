@@ -55,9 +55,13 @@ export class FacturesController {
   }
 
   @Get('vente/prochain-numero')
-  getProchainNumero(@Query('annee') annee?: string) {
+  getProchainNumero(
+    @Query('annee') annee?: string,
+    @Query('societe') societe?: string,
+  ) {
     return this.facturesService.getProchainNumero(
       annee ? parseInt(annee, 10) : undefined,
+      societe,
     );
   }
 
@@ -65,8 +69,9 @@ export class FacturesController {
   setSequence(
     @Param('annee', ParseIntPipe) annee: number,
     @Body() dto: UpdateFactureConfigDto,
+    @Query('societe') societe?: string,
   ) {
-    return this.facturesService.setSequence(annee, dto.sequence);
+    return this.facturesService.setSequence(annee, dto.sequence, societe);
   }
 
   @Post('vente/calcul')
@@ -93,8 +98,9 @@ export class FacturesController {
     @Query('search') search?: string,
     @Query('dateDebut') dateDebut?: string,
     @Query('dateFin') dateFin?: string,
+    @Query('societe') societe?: string,
   ) {
-    return this.facturesService.findAllVente({ search, dateDebut, dateFin });
+    return this.facturesService.findAllVente({ search, dateDebut, dateFin, societe });
   }
 
   @Post('vente')

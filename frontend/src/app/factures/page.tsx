@@ -8,6 +8,7 @@ import { Modal } from '@/components/Modal';
 import { formatDate, formatMoney } from '@/lib/utils';
 import {
   DEFAULTS_VENTE,
+  DEFAULTS_VENTE_CHIMIRAL,
   calculerLigne,
   calculerTotaux,
   emptyLigne,
@@ -16,27 +17,30 @@ import {
   type FactureLigneForm,
 } from '@/lib/facture.utils';
 
-type Tab = 'achat' | 'vente';
+type Tab = 'achat' | 'vente-oxyral' | 'vente-chimiral';
 
-const emptyVenteForm = () => ({
-  numeroFacture: '',
-  dateFacture: new Date().toISOString().split('T')[0],
-  telephone: DEFAULTS_VENTE.telephone,
-  mail: DEFAULTS_VENTE.mail,
-  clientId: '',
-  clientNom: '',
-  clientAdresse: '',
-  clientIce: '',
-  codeClient: DEFAULTS_VENTE.codeClient,
-  bonCommande: '',
-  numeroAttach: '',
-  conditionPaiement: 'CHÈQUE',
-  lignes: [emptyLigne()],
-  sequenceConfig: '',
-});
+const emptyVenteForm = (isChimiral = false) => {
+  const defaults = isChimiral ? DEFAULTS_VENTE_CHIMIRAL : DEFAULTS_VENTE;
+  return {
+    numeroFacture: '',
+    dateFacture: new Date().toISOString().split('T')[0],
+    telephone: defaults.telephone,
+    mail: defaults.mail,
+    clientId: '',
+    clientNom: '',
+    clientAdresse: '',
+    clientIce: '',
+    codeClient: defaults.codeClient,
+    bonCommande: '',
+    numeroAttach: '',
+    conditionPaiement: 'CHÈQUE',
+    lignes: [emptyLigne()],
+    sequenceConfig: '',
+  };
+};
 
 export default function FacturesPage() {
-  const [tab, setTab] = useState<Tab>('vente');
+  const [tab, setTab] = useState<Tab>('vente-oxyral');
   const [factures, setFactures] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [fournisseurs, setFournisseurs] = useState<any[]>([]);
@@ -54,8 +58,10 @@ export default function FacturesPage() {
     dateFacture: '',
     montant: '',
   });
-  const [formVente, setFormVente] = useState(emptyVenteForm());
+  const [formVente, setFormVente] = useState(() => emptyVenteForm(false));
   const [lastFactureNum, setLastFactureNum] = useState('');
+
+  const isVente = tab.startsWith('vente');
 
   const totaux = useMemo(
     () => calculerTotaux(formVente.lignes),
@@ -67,8 +73,12 @@ export default function FacturesPage() {
     if (search) params.search = search;
     if (dateDebut) params.dateDebut = dateDebut;
     if (dateFin) params.dateFin = dateFin;
-    if (tab === 'achat') facturesApi.getAchat(params).then(setFactures);
-    else facturesApi.getVente(params).then(setFactures);
+    if (tab === 'achat') {
+      facturesApi.getAchat(params).then(setFactures);
+    } else {
+      const societe = tab === 'vente-chimiral' ? 'CHIMIRAL' : 'OXYRAL';
+      facturesApi.getVente({ ...params, societe }).then(setFactures);
+    }
   }, [tab, search, dateDebut, dateFin]);
 
   useEffect(() => {
@@ -99,7 +109,7 @@ export default function FacturesPage() {
   }, [formVente.numeroFacture, lastFactureNum]);
 
   useEffect(() => {
-    if (!modal || tab !== 'vente') return;
+    if (!modal || !isVente) return;
     const lignesValides = formVente.lignes.filter(
       (l) => l.designation && parseNum(l.quantite) > 0,
     );
@@ -120,11 +130,12 @@ export default function FacturesPage() {
         .catch(() => setMontantLettres(''));
     }, 300);
     return () => clearTimeout(timer);
-  }, [formVente.lignes, modal, tab]);
+  }, [formVente.lignes, modal, isVente]);
 
   const loadProchainNumero = async (date?: string) => {
     const annee = date ? new Date(date).getFullYear() : new Date().getFullYear();
-    const data = await facturesApi.getProchainNumero(annee);
+    const societe = tab === 'vente-chimiral' ? 'CHIMIRAL' : 'OXYRAL';
+    const data = await facturesApi.getProchainNumero(annee, societe);
     setFormVente((f) => ({
       ...f,
       numeroFacture: data.numeroFacture,
@@ -138,7 +149,8 @@ export default function FacturesPage() {
     if (tab === 'achat') {
       setFormAchat({ partenaireId: '', numeroFacture: '', dateFacture: '', montant: '' });
     } else {
-      const initial = emptyVenteForm();
+      const isChimiral = tab === 'vente-chimiral';
+      const initial = emptyVenteForm(isChimiral);
       setFormVente(initial);
       await loadProchainNumero(initial.dateFacture);
     }
@@ -244,6 +256,7 @@ export default function FacturesPage() {
         setError('Ajoutez au moins une ligne de prestation.');
         return;
       }
+      const societe = tab === 'vente-chimiral' ? 'CHIMIRAL' : 'OXYRAL';
       const payload = {
         numeroFacture: formVente.numeroFacture || undefined,
         dateFacture: formVente.dateFacture,
@@ -258,6 +271,7 @@ export default function FacturesPage() {
         numeroAttach: formVente.numeroAttach || undefined,
         conditionPaiement: formVente.conditionPaiement || undefined,
         lignes,
+        societe,
       };
       let saved;
       if (editId) saved = await facturesApi.updateVente(editId, payload);
@@ -291,7 +305,7 @@ export default function FacturesPage() {
   };
 
   const openDetail = async (f: any) => {
-    if (tab === 'vente') {
+    if (isVente) {
       setDetailModal(await facturesApi.getVenteOne(f.id));
     }
   };
@@ -301,13 +315,13 @@ export default function FacturesPage() {
       <PageHeader
         title="Factures"
         description={
-          tab === 'vente'
-            ? 'Facturation OXYRAL — template PDF professionnel'
+          isVente
+            ? `Facturation ${tab === 'vente-chimiral' ? 'CHIMIRAL' : 'OXYRAL'} — template PDF professionnel`
             : 'Gestion des factures d\'achat'
         }
         action={
           <button onClick={openCreate} className="btn-primary flex items-center gap-2">
-            <Plus size={16} /> {tab === 'vente' ? 'Nouvelle facture' : 'Ajouter'}
+            <Plus size={16} /> {isVente ? 'Nouvelle facture' : 'Ajouter'}
           </button>
         }
       />
@@ -320,10 +334,16 @@ export default function FacturesPage() {
           Factures d'achat
         </button>
         <button
-          onClick={() => setTab('vente')}
-          className={`rounded-lg px-4 py-2 text-sm font-medium ${tab === 'vente' ? 'bg-brand-600 text-white' : 'btn-secondary'}`}
+          onClick={() => setTab('vente-oxyral')}
+          className={`rounded-lg px-4 py-2 text-sm font-medium ${tab === 'vente-oxyral' ? 'bg-brand-600 text-white' : 'btn-secondary'}`}
         >
           Factures de vente OXYRAL
+        </button>
+        <button
+          onClick={() => setTab('vente-chimiral')}
+          className={`rounded-lg px-4 py-2 text-sm font-medium ${tab === 'vente-chimiral' ? 'bg-brand-600 text-white' : 'btn-secondary'}`}
+        >
+          Factures de vente CHIMIRAL
         </button>
       </div>
 
@@ -347,9 +367,9 @@ export default function FacturesPage() {
           <thead>
             <tr className="border-b border-gray-200 dark:border-gray-800">
               <th className="table-th">N° Facture</th>
-              <th className="table-th">{tab === 'achat' ? 'Fournisseur' : 'Client'}</th>
+              <th className="table-th">{isVente ? 'Client' : 'Fournisseur'}</th>
               <th className="table-th">Date</th>
-              <th className="table-th">{tab === 'vente' ? 'Total TTC' : 'Montant'}</th>
+              <th className="table-th">{isVente ? 'Total TTC' : 'Montant'}</th>
               <th className="table-th">PDF</th>
               <th className="table-th">Actions</th>
             </tr>
@@ -360,16 +380,16 @@ export default function FacturesPage() {
                 <td className="table-td font-medium">{f.numeroFacture}</td>
                 <td className="table-td">
                   {tab === 'achat'
-                    ? f.fournisseur.nomFournisseur
+                    ? f.fournisseur?.nomFournisseur
                     : f.clientNom || f.client?.nomClient}
                 </td>
                 <td className="table-td">{formatDate(f.dateFacture)}</td>
                 <td className="table-td font-semibold">
-                  {formatMoney(tab === 'vente' ? f.totalTtc || f.montant : f.montant)}
+                  {formatMoney(isVente ? f.totalTtc || f.montant : f.montant)}
                 </td>
                 <td className="table-td">
                   {f.pdfPath ? (
-                    tab === 'vente' ? (
+                    isVente ? (
                       <button
                         onClick={() => handleDownload(f)}
                         className="inline-flex items-center gap-1 text-brand-600 hover:underline"
@@ -384,7 +404,7 @@ export default function FacturesPage() {
                   )}
                 </td>
                 <td className="table-td">
-                  {tab === 'vente' && (
+                  {isVente && (
                     <button onClick={() => openDetail(f)} className="btn-secondary mr-2 text-xs">
                       Voir
                     </button>
@@ -435,11 +455,11 @@ export default function FacturesPage() {
         </form>
       </Modal>
 
-      {/* Modal vente OXYRAL */}
+      {/* Modal vente OXYRAL & CHIMIRAL */}
       <Modal
-        open={modal && tab === 'vente'}
+        open={modal && isVente}
         onClose={() => setModal(false)}
-        title={editId ? 'Modifier facture OXYRAL' : 'Nouvelle facture OXYRAL'}
+        title={editId ? (tab === 'vente-chimiral' ? 'Modifier facture CHIMIRAL' : 'Modifier facture OXYRAL') : (tab === 'vente-chimiral' ? 'Nouvelle facture CHIMIRAL' : 'Nouvelle facture OXYRAL')}
         wide
       >
         <form onSubmit={handleSubmitVente} className="space-y-4">
@@ -490,15 +510,15 @@ export default function FacturesPage() {
           </div>
 
           <div className="rounded-lg border p-3 dark:border-gray-700">
-            <h4 className="mb-2 font-semibold text-brand-600">Fournisseur (OXYRAL)</h4>
+            <h4 className="mb-2 font-semibold text-brand-600">{tab === 'vente-chimiral' ? 'Fournisseur (CHIMIRAL)' : 'Fournisseur (OXYRAL)'}</h4>
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <label className="label">Téléphone</label>
-                <input className="input" placeholder="Ex. 0662 176 292" value={formVente.telephone} onChange={(e) => setFormVente({ ...formVente, telephone: e.target.value })} />
+                <input className="input" placeholder={tab === 'vente-chimiral' ? 'Ex. 05 22 33 29 05' : 'Ex. 0662 176 292'} value={formVente.telephone} onChange={(e) => setFormVente({ ...formVente, telephone: e.target.value })} />
               </div>
               <div>
                 <label className="label">Mail</label>
-                <input className="input" placeholder="Ex. contact@oxyral.ma" value={formVente.mail} onChange={(e) => setFormVente({ ...formVente, mail: e.target.value })} />
+                <input className="input" placeholder={tab === 'vente-chimiral' ? 'Ex. chimiral@oxyral.ma' : 'Ex. contact@oxyral.ma'} value={formVente.mail} onChange={(e) => setFormVente({ ...formVente, mail: e.target.value })} />
               </div>
             </div>
           </div>
@@ -509,7 +529,7 @@ export default function FacturesPage() {
               <label className="label">Pré-remplir depuis la liste</label>
               <select className="input" value={formVente.clientId} onChange={(e) => handleClientSelect(e.target.value)}>
                 <option value="">Saisie manuelle...</option>
-                {clients.filter((c) => c.societe === 'OXYRAL').map((c) => (
+                {clients.filter((c) => c.societe === (tab === 'vente-chimiral' ? 'CHIMIRAL' : 'OXYRAL')).map((c) => (
                   <option key={c.id} value={c.id}>{c.nomClient}</option>
                 ))}
               </select>
@@ -579,7 +599,7 @@ export default function FacturesPage() {
                     />
                   </div>
                   <div className="sm:col-span-2">
-                    <label className="label text-xs">Qté m²</label>
+                    <label className="label text-xs">{tab === 'vente-chimiral' ? 'Qté' : 'Qté m²'}</label>
                     <input
                       type="number"
                       step="0.01"

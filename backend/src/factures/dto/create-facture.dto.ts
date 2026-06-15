@@ -44,6 +44,10 @@ export class CreateFactureVenteDto {
 
   @IsOptional()
   @IsString()
+  societe?: string;
+
+  @IsOptional()
+  @IsString()
   numeroFacture?: string;
 
   @IsDateString()

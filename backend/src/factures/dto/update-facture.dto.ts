@@ -27,6 +27,10 @@ export class UpdateFactureDto {
 export class UpdateFactureVenteDto {
   @IsOptional()
   @IsString()
+  societe?: string;
+
+  @IsOptional()
+  @IsString()
   numeroFacture?: string;
 
   @IsOptional()

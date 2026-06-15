@@ -150,6 +150,7 @@ model FactureVente {
   totalTtc         Decimal  @default(0) @map("total_ttc")
   montantEnLettres String?  @map("montant_en_lettres")
   pdfPath          String?  @map("pdf_path")
+  societe          String   @default("OXYRAL") @map("societe")
   createdAt        DateTime @default(now()) @map("created_at")
 
   client Client?            @relation(fields: [clientId], references: [id], onDelete: SetNull)

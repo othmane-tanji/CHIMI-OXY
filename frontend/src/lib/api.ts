@@ -138,17 +138,22 @@ export const facturesApi = {
     return api<any[]>(`/factures/vente${q}`);
   },
   getVenteOne: (id: number) => api<any>(`/factures/vente/${id}`),
-  getProchainNumero: (annee?: number) => {
-    const q = annee ? `?annee=${annee}` : '';
+  getProchainNumero: (annee?: number, societe?: string) => {
+    const params: Record<string, string> = {};
+    if (annee) params.annee = String(annee);
+    if (societe) params.societe = societe;
+    const q = '?' + new URLSearchParams(params).toString();
     return api<{ numeroFacture: string; sequence: number; annee: number }>(
       `/factures/vente/prochain-numero${q}`,
     );
   },
-  setSequence: (annee: number, sequence: number) =>
-    api(`/factures/vente/config/${annee}`, {
+  setSequence: (annee: number, sequence: number, societe?: string) => {
+    const q = societe ? `?societe=${societe}` : '';
+    return api(`/factures/vente/config/${annee}${q}`, {
       method: 'PUT',
       body: JSON.stringify({ sequence }),
-    }),
+    });
+  },
   calculPreview: (lignes: { designation: string; quantite: number; prixUnitaire: number }[]) =>
     api<any>('/factures/vente/calcul', {
       method: 'POST',

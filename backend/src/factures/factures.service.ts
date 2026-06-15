@@ -27,6 +27,12 @@ const DEFAULTS = {
   mail: 'contact@oxyral.ma',
 };
 
+const DEFAULTS_CHIMIRAL = {
+  codeClient: 'CH704',
+  telephone: '05 22 33 29 05',
+  mail: 'chimiral@oxyral.ma',
+};
+
 @Injectable()
 export class FacturesService {
   constructor(
@@ -39,13 +45,17 @@ export class FacturesService {
     lignes: { orderBy: { ordre: 'asc' as const } },
   };
 
-  private async getNextSequence(annee: number): Promise<number> {
-    const cle = `vente_seq_${annee}`;
+  private async getNextSequence(annee: number, societe: string = 'OXYRAL'): Promise<number> {
+    const isOxyral = societe === 'OXYRAL';
+    const cle = isOxyral ? `vente_seq_${annee}` : `vente_seq_${societe.toLowerCase()}_${annee}`;
     const existing = await this.prisma.factureConfig.findUnique({ where: { cle } });
     if (existing) return parseInt(existing.valeur, 10) + 1;
 
     const last = await this.prisma.factureVente.findFirst({
-      where: { numeroFacture: { startsWith: `${annee}/` } },
+      where: {
+        numeroFacture: { startsWith: `${annee}/` },
+        societe,
+      },
       orderBy: { numeroFacture: 'desc' },
     });
     if (!last) return 1;
@@ -53,11 +63,13 @@ export class FacturesService {
     return (parseInt(part, 10) || 0) + 1;
   }
 
-  async getProchainNumero(annee?: number) {
+  async getProchainNumero(annee?: number, societe: string = 'OXYRAL') {
     const year = annee ?? new Date().getFullYear();
-    const sequence = await this.getNextSequence(year);
+    const sequence = await this.getNextSequence(year, societe);
+    const isOxyral = societe === 'OXYRAL';
+    const cle = isOxyral ? `vente_seq_${year}` : `vente_seq_${societe.toLowerCase()}_${year}`;
     const config = await this.prisma.factureConfig.findUnique({
-      where: { cle: `vente_seq_${year}` },
+      where: { cle },
     });
     return {
       annee: year,
@@ -67,18 +79,20 @@ export class FacturesService {
     };
   }
 
-  async setSequence(annee: number, sequence: number) {
-    const cle = `vente_seq_${annee}`;
+  async setSequence(annee: number, sequence: number, societe: string = 'OXYRAL') {
+    const isOxyral = societe === 'OXYRAL';
+    const cle = isOxyral ? `vente_seq_${annee}` : `vente_seq_${societe.toLowerCase()}_${annee}`;
     await this.prisma.factureConfig.upsert({
       where: { cle },
       create: { cle, valeur: String(sequence) },
       update: { valeur: String(sequence) },
     });
-    return this.getProchainNumero(annee);
+    return this.getProchainNumero(annee, societe);
   }
 
-  private async reserveNumero(annee: number, numeroForce?: string): Promise<string> {
-    const cle = `vente_seq_${annee}`;
+  private async reserveNumero(annee: number, numeroForce?: string, societe: string = 'OXYRAL'): Promise<string> {
+    const isOxyral = societe === 'OXYRAL';
+    const cle = isOxyral ? `vente_seq_${annee}` : `vente_seq_${societe.toLowerCase()}_${annee}`;
     if (numeroForce) {
       const part = numeroForce.split('/')[1];
       const seq = parseInt(part, 10);
@@ -91,7 +105,7 @@ export class FacturesService {
       }
       return numeroForce;
     }
-    const sequence = await this.getNextSequence(annee);
+    const sequence = await this.getNextSequence(annee, societe);
     const numero = formatNumeroFacture(annee, sequence);
     await this.prisma.factureConfig.upsert({
       where: { cle },
@@ -170,8 +184,11 @@ export class FacturesService {
   }
 
   // --- Factures Vente OXYRAL ---
-  findAllVente(filters?: { search?: string; dateDebut?: string; dateFin?: string }) {
+  findAllVente(filters?: { search?: string; dateDebut?: string; dateFin?: string; societe?: string }) {
     const where: any = {};
+    if (filters?.societe) {
+      where.societe = filters.societe;
+    }
     if (filters?.search) {
       where.OR = [
         { numeroFacture: { contains: filters.search } },
@@ -211,10 +228,13 @@ export class FacturesService {
     if (!dto.lignes?.length) {
       throw new BadRequestException('Ajoutez au moins une ligne de prestation');
     }
+    const societe = dto.societe || 'OXYRAL';
+    const defaults = societe === 'CHIMIRAL' ? DEFAULTS_CHIMIRAL : DEFAULTS;
+
     const totaux = calculerFactureVente(dto.lignes);
     const dateFacture = new Date(dto.dateFacture);
     const annee = dateFacture.getFullYear();
-    const numeroFacture = await this.reserveNumero(annee, dto.numeroFacture);
+    const numeroFacture = await this.reserveNumero(annee, dto.numeroFacture, societe);
 
     const facture = await this.prisma.factureVente.create({
       data: {
@@ -222,12 +242,12 @@ export class FacturesService {
         numeroFacture,
         dateFacture,
         montant: totaux.totalTtc,
-        telephone: dto.telephone || DEFAULTS.telephone,
-        mail: dto.mail || DEFAULTS.mail,
+        telephone: dto.telephone || defaults.telephone,
+        mail: dto.mail || defaults.mail,
         clientNom: dto.clientNom,
         clientAdresse: dto.clientAdresse,
         clientIce: dto.clientIce,
-        codeClient: dto.codeClient ?? DEFAULTS.codeClient,
+        codeClient: dto.codeClient ?? defaults.codeClient,
         bonCommande: dto.bonCommande,
         numeroAttach: dto.numeroAttach,
         conditionPaiement: dto.conditionPaiement,
@@ -235,6 +255,7 @@ export class FacturesService {
         totalTva: totaux.totalTva,
         totalTtc: totaux.totalTtc,
         montantEnLettres: totaux.montantEnLettres,
+        societe,
         lignes: {
           create: totaux.lignes.map((l, i) => ({
             designation: l.designation,
@@ -258,6 +279,8 @@ export class FacturesService {
 
   async updateVente(id: number, dto: UpdateFactureVenteDto) {
     const existing = await this.findOneVente(id);
+    const defaults = existing.societe === 'CHIMIRAL' ? DEFAULTS_CHIMIRAL : DEFAULTS;
+
     let totaux = {
       totalHt: Number(existing.totalHt),
       totalTva: Number(existing.totalTva),
@@ -284,8 +307,8 @@ export class FacturesService {
       data: {
         numeroFacture: dto.numeroFacture,
         dateFacture: dto.dateFacture ? new Date(dto.dateFacture) : undefined,
-        telephone: dto.telephone || DEFAULTS.telephone,
-        mail: dto.mail || DEFAULTS.mail,
+        telephone: dto.telephone || defaults.telephone,
+        mail: dto.mail || defaults.mail,
         clientNom: dto.clientNom,
         clientAdresse: dto.clientAdresse,
         clientIce: dto.clientIce,
@@ -293,6 +316,7 @@ export class FacturesService {
         bonCommande: dto.bonCommande,
         numeroAttach: dto.numeroAttach,
         conditionPaiement: dto.conditionPaiement,
+        societe: dto.societe,
         montant: totaux.totalTtc,
         totalHt: totaux.totalHt,
         totalTva: totaux.totalTva,
@@ -361,6 +385,7 @@ export class FacturesService {
       totalTva: Number(facture.totalTva),
       totalTtc: Number(facture.totalTtc),
       montantEnLettres: facture.montantEnLettres,
+      societe: facture.societe,
     };
   }
 

@@ -79,6 +79,7 @@ export interface FacturePdfData {
   totalTva: number;
   totalTtc: number;
   montantEnLettres: string;
+  societe?: string;
 }
 
 function esc(text: string): string {
@@ -195,9 +196,11 @@ export async function generateFactureVentePdf(
   data: FacturePdfData,
   outputPath: string,
  ): Promise<void> {
-  if (!fs.existsSync(TEMPLATE)) {
+  const templateName = data.societe === 'CHIMIRAL' ? 'facture-template-chimiral.png' : 'facture-template.png';
+  const templatePath = path.join(process.cwd(), 'assets', templateName);
+  if (!fs.existsSync(templatePath)) {
     throw new Error(
-      `Modèle introuvable : ${TEMPLATE}. Placez facture-template.png dans backend/assets/`,
+      `Modèle introuvable : ${templatePath}. Placez ${templateName} dans backend/assets/`,
     );
   }
 
@@ -409,7 +412,7 @@ export async function generateFactureVentePdf(
     : '';
 
   const svg = `<svg width="${IMG_W}" height="${IMG_H}" xmlns="http://www.w3.org/2000/svg">${fontStyle}${parts.join('')}</svg>`;
-  const composed = await sharp(TEMPLATE)
+  const composed = await sharp(templatePath)
     .resize(IMG_W, IMG_H)
     .composite([{ input: Buffer.from(svg), top: 0, left: 0 }])
     .png()
