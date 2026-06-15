@@ -15,8 +15,8 @@ import {
 const TEMPLATE_FORM = path.join(process.cwd(), 'assets', 'template-form.png');
 const IMG_W = 723;
 const IMG_H = 952;
-const PAGE_W = 526.5;
-const PAGE_H = 690.75;
+const PAGE_W = 595.276;
+const PAGE_H = 841.89;
 const SOCIETE_CNSS = '8229149';
 
 export interface BulletinCumuls {
