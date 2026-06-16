@@ -216,11 +216,20 @@ function splitClientAdresse(adresse: string): { ligne1: string; ville: string } 
   return { ligne1: trimmed, ville: '' };
 }
 
-function wrapDesignation(text: string, maxLen = 38): string[] {
+function wrapDesignation(text: string, maxLen = 33): string[] {
   const words = text.split(/\s+/);
   const lines: string[] = [];
   let current = '';
-  for (const word of words) {
+  for (let word of words) {
+    while (word.length > maxLen) {
+      const part = word.substring(0, maxLen);
+      word = word.substring(maxLen);
+      if (current) {
+        lines.push(current);
+        current = '';
+      }
+      lines.push(part);
+    }
     const next = current ? `${current} ${word}` : word;
     if (next.length > maxLen && current) {
       lines.push(current);

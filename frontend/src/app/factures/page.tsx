@@ -280,9 +280,10 @@ export default function FacturesPage() {
       setModal(false);
       load();
       if (saved?.id) {
+        const societeName = (saved.societe || 'oxyral').toLowerCase();
         await facturesApi.downloadVentePdf(
           saved.id,
-          `facture-${saved.numeroFacture.replace(/\//g, '-')}.pdf`,
+          `facture-${societeName}-${saved.numeroFacture.replace(/\//g, '-')}.pdf`,
         );
       }
     } catch (err: any) {
@@ -291,9 +292,10 @@ export default function FacturesPage() {
   };
 
   const handleDownload = async (f: any) => {
+    const societeName = (f.societe || 'oxyral').toLowerCase();
     await facturesApi.downloadVentePdf(
       f.id,
-      `facture-${f.numeroFacture.replace(/\//g, '-')}.pdf`,
+      `facture-${societeName}-${f.numeroFacture.replace(/\//g, '-')}.pdf`,
     );
   };
 
