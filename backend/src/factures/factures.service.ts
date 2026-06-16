@@ -392,7 +392,8 @@ export class FacturesService {
   private async generateFactureVentePdfFile(facture: any): Promise<string> {
     const dir = path.join(process.cwd(), 'storage', 'pdfs', 'factures', 'vente');
     fs.mkdirSync(dir, { recursive: true });
-    const filename = `facture-${facture.numeroFacture.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`;
+    const societeName = (facture.societe || 'oxyral').toLowerCase();
+    const filename = `facture-${societeName}-${facture.numeroFacture.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`;
     const fullPath = path.join(dir, filename);
     await generateFactureVentePdf(this.toPdfData(facture), fullPath);
     return path.relative(process.cwd(), fullPath).replace(/\\/g, '/');

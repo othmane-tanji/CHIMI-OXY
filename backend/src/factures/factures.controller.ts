@@ -84,7 +84,8 @@ export class FacturesController {
     const facture = await this.facturesService.findOneVente(id);
     const pdfPath = await this.facturesService.regenerateVentePdf(id);
     const filePath = this.facturesService.getPdfAbsolutePath(pdfPath);
-    const filename = `facture-${facture.numeroFacture.replace(/\//g, '-')}.pdf`;
+    const societeName = (facture.societe || 'oxyral').toLowerCase();
+    const filename = `facture-${societeName}-${facture.numeroFacture.replace(/\//g, '-')}.pdf`;
     res.download(filePath, filename);
   }
 
