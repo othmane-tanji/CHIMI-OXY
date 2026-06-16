@@ -20,23 +20,41 @@ const UNITS = [
   'DIX-HUIT',
   'DIX-NEUF',
 ];
+const TENS = [
+  '',
+  'DIX',
+  'VINGT',
+  'TRENTE',
+  'QUARANTE',
+  'CINQUANTE',
+  'SOIXANTE',
+  'SOIXANTE',
+  'QUATRE-VINGT',
+  'QUATRE-VINGT',
+];
 
 function underHundred(n: number): string {
   if (n < 20) return UNITS[n];
-  if (n < 70) {
-    const d = Math.floor(n / 10);
-    const u = n % 10;
-    const tens = d === 7 ? 'SOIXANTE' : d === 9 ? 'QUATRE-VINGT' : `${UNITS[d]}${d === 8 ? '' : '-'}${d === 8 ? 'QUATRE-VINGT' : 'DIX'}`;
-    if (d === 7 && u > 0) return `SOIXANTE-${underHundred(10 + u)}`;
-    if (d === 9 && u > 0) return `QUATRE-VINGT-${underHundred(10 + u)}`;
-    if (u === 0) return tens;
-    if (d === 8) return `QUATRE-VINGT-${UNITS[u]}`;
-    return `${tens}-${UNITS[u]}`;
+  const d = Math.floor(n / 10);
+  const u = n % 10;
+
+  if (d === 7) {
+    if (u === 1) return 'SOIXANTE ET ONZE';
+    return `SOIXANTE-${UNITS[10 + u]}`;
   }
-  if (n < 80) return n === 71 ? 'SOIXANTE ET ONZE' : `SOIXANTE-${underHundred(n - 60)}`;
-  const u = n - 80;
-  if (u === 0) return 'QUATRE-VINGTS';
-  return `QUATRE-VINGT-${underHundred(u)}`;
+
+  if (d === 8) {
+    if (u === 0) return 'QUATRE-VINGTS';
+    return `QUATRE-VINGT-${UNITS[u]}`;
+  }
+
+  if (d === 9) {
+    return `QUATRE-VINGT-${UNITS[10 + u]}`;
+  }
+
+  if (u === 0) return TENS[d];
+  if (u === 1) return `${TENS[d]} ET UN`;
+  return `${TENS[d]}-${UNITS[u]}`;
 }
 
 function underThousand(n: number): string {
