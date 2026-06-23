@@ -121,6 +121,7 @@ export interface FacturePdfData {
   totalTtc: number;
   montantEnLettres: string;
   societe?: string;
+  chantier?: string | null;
 }
 
 function esc(text: string): string {
@@ -392,6 +393,14 @@ export async function generateFactureVentePdf(
       'bold',
     ),
   );
+  if (['MARJANE HOLDING S.A.', 'MARJANE HOLDING SA', 'MARJANE HOLDING'].includes(data.clientNom?.trim().toUpperCase()) && data.chantier) {
+    parts.push(
+      svgText(`Chantier : ${data.chantier}`, 70, F.totalHorsTaxe.y, {
+        size: 19,
+        weight: 'bold',
+      }),
+    );
+  }
   parts.push(
     svgBox(formatMontantFacture(data.totalHt), F.totalHt.x, F.totalHt.y, F.totalHt.w, 21, 'bold'),
   );

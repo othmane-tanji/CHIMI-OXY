@@ -74,6 +74,10 @@ export class UpdateFactureVenteDto {
   conditionPaiement?: string;
 
   @IsOptional()
+  @IsString()
+  chantier?: string;
+
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => FactureLigneDto)

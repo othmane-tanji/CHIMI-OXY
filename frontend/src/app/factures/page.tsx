@@ -36,6 +36,7 @@ const emptyVenteForm = (isChimiral = false) => {
     conditionPaiement: 'CHÈQUE',
     lignes: [emptyLigne()],
     sequenceConfig: '',
+    chantier: '',
   };
 };
 
@@ -182,6 +183,7 @@ export default function FacturesPage() {
         bonCommande: full.bonCommande || '',
         numeroAttach: full.numeroAttach || '',
         conditionPaiement: full.conditionPaiement || 'CHÈQUE',
+        chantier: full.chantier || '',
         lignes: full.lignes?.length
           ? full.lignes.map((l: any) => ({
               designation: l.designation,
@@ -270,6 +272,7 @@ export default function FacturesPage() {
         bonCommande: formVente.bonCommande || undefined,
         numeroAttach: formVente.numeroAttach || undefined,
         conditionPaiement: formVente.conditionPaiement || undefined,
+        chantier: formVente.chantier || undefined,
         lignes,
         societe,
       };
@@ -550,6 +553,12 @@ export default function FacturesPage() {
                 <label className="label">ICE</label>
                 <input className="input" value={formVente.clientIce} onChange={(e) => setFormVente({ ...formVente, clientIce: e.target.value })} />
               </div>
+              {['MARJANE HOLDING S.A.', 'MARJANE HOLDING SA', 'MARJANE HOLDING'].includes(formVente.clientNom?.trim().toUpperCase()) && (
+                <div>
+                  <label className="label text-brand-600 font-semibold">Chantier</label>
+                  <input className="input border-brand-300 font-semibold" placeholder="Ex. Tanger" value={formVente.chantier} onChange={(e) => setFormVente({ ...formVente, chantier: e.target.value })} />
+                </div>
+              )}
             </div>
           </div>
 
@@ -687,6 +696,7 @@ export default function FacturesPage() {
               <p><span className="text-gray-500">Client :</span> <strong>{detailModal.clientNom}</strong></p>
               <p className="sm:col-span-2"><span className="text-gray-500">Adresse :</span> <strong>{detailModal.clientAdresse}</strong></p>
               {detailModal.clientIce && <p><span className="text-gray-500">ICE :</span> {detailModal.clientIce}</p>}
+              {detailModal.chantier && <p><span className="text-gray-500">Chantier :</span> <strong>{detailModal.chantier}</strong></p>}
               <p><span className="text-gray-500">Code client :</span> {detailModal.codeClient}</p>
             </div>
             <table className="w-full">

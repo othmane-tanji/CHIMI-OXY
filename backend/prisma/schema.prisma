@@ -151,6 +151,7 @@ model FactureVente {
   montantEnLettres String?  @map("montant_en_lettres")
   pdfPath          String?  @map("pdf_path")
   societe          String   @default("OXYRAL") @map("societe")
+  chantier         String?  @map("chantier")
   createdAt        DateTime @default(now()) @map("created_at")
 
   client Client?            @relation(fields: [clientId], references: [id], onDelete: SetNull)

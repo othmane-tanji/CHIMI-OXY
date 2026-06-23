@@ -88,6 +88,10 @@ export class CreateFactureVenteDto {
   @IsString()
   conditionPaiement?: string;
 
+  @IsOptional()
+  @IsString()
+  chantier?: string;
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => FactureLigneDto)
