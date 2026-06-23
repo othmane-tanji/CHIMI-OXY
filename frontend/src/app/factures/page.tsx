@@ -543,7 +543,7 @@ export default function FacturesPage() {
               </div>
               <div>
                 <label className="label">Adresse et ville (gras sur PDF)</label>
-                <input className="input font-semibold" placeholder="Rue, quartier — CASABLANCA" value={formVente.clientAdresse} onChange={(e) => setFormVente({ ...formVente, clientAdresse: e.target.value })} required />
+                <input className="input font-semibold" placeholder="Rue, quartier — CASABLANCA" value={formVente.clientAdresse} onChange={(e) => setFormVente({ ...formVente, clientAdresse: e.target.value })} required={!['MARJANE HOLDING S.A.', 'MARJANE HOLDING SA', 'MARJANE HOLDING'].includes(formVente.clientNom?.trim().toUpperCase())} />
                 <p className="mt-1 text-xs text-gray-500">La ville en MAJUSCULES à la fin sera affichée sur une ligne séparée (ex. tit mellil CASABLANCA).</p>
               </div>
               <div>

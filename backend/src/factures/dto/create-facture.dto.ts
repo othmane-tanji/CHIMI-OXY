@@ -64,8 +64,9 @@ export class CreateFactureVenteDto {
   @IsString()
   clientNom: string;
 
+  @IsOptional()
   @IsString()
-  clientAdresse: string;
+  clientAdresse?: string;
 
   @IsOptional()
   @IsString()
