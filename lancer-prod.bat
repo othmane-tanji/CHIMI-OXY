@@ -7,21 +7,15 @@ echo.
 
 powershell -ExecutionPolicy Bypass -Command "Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue"
 
-echo [1/2] Verification des compilations...
+echo [1/2] Recompilation du Frontend et Backend...
 cd /d "%~dp0backend"
-if not exist "dist\main.js" (
-    echo Compilation backend en cours...
-    call npm.cmd run build
-)
+call npm.cmd run build
 
 cd /d "%~dp0frontend"
-if not exist ".next" (
-    echo Compilation frontend en cours...
-    call npm.cmd run build
-)
+call npm.cmd run build
 
 echo.
-echo [2/2] Demarrage des serveurs...
+echo [2/2] Demarrage des serveurs en mode Production...
 powershell -ExecutionPolicy Bypass -Command "Start-Process node -ArgumentList 'dist/main.js' -WorkingDirectory '%~dp0backend' -WindowStyle Hidden"
 powershell -ExecutionPolicy Bypass -Command "Start-Process cmd -ArgumentList '/c npm run start' -WorkingDirectory '%~dp0frontend' -WindowStyle Hidden"
 
