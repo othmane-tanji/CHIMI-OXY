@@ -1,35 +1,60 @@
 # Beta ERP - Windows startup script
 $ErrorActionPreference = "Stop"
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction SilentlyContinue
+
+if (Test-Path "C:\Program Files\nodejs") {
+    $env:Path = "C:\Program Files\nodejs;" + $env:Path
+}
+
+# Close any running node processes to release file locks on Windows
+Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 
 Write-Host "=== Beta ERP - Oxyral & Chimiral ===" -ForegroundColor Cyan
 
-Write-Host "`n[1/4] Installing and configuring backend..." -ForegroundColor Yellow
-Set-Location "$PSScriptRoot\backend"
-npm install
-if ($LASTEXITCODE -ne 0) { throw "Backend dependency installation failed." }
-npx prisma generate
-if ($LASTEXITCODE -ne 0) { throw "Prisma client generation failed." }
-npx prisma migrate deploy
-if ($LASTEXITCODE -ne 0) { throw "Database migration failed." }
-node -e "const {PrismaClient}=require('@prisma/client');const p=new PrismaClient();p.user.count().then(n=>process.exit(n>0?0:1)).catch(()=>process.exit(1)).finally(()=>p.`$disconnect())"
-if ($LASTEXITCODE -ne 0) {
-    npx prisma db seed
-    if ($LASTEXITCODE -ne 0) { throw "Database seed failed." }
+$backendPath = Join-Path $PSScriptRoot "backend"
+$frontendPath = Join-Path $PSScriptRoot "frontend"
+
+Write-Host "`n[1/3] Configuration du backend..." -ForegroundColor Yellow
+Set-Location $backendPath
+if (-not (Test-Path "$backendPath\node_modules")) {
+    npm.cmd install
 }
 
-Write-Host "`n[2/4] Installing frontend..." -ForegroundColor Yellow
-Set-Location "$PSScriptRoot\frontend"
-npm install
-if ($LASTEXITCODE -ne 0) { throw "Frontend dependency installation failed." }
+$ErrorActionPreference = "SilentlyContinue"
+npx.cmd prisma generate
+$ErrorActionPreference = "Stop"
 
-Write-Host "`n[3/4] Starting backend API on port 3001..." -ForegroundColor Yellow
-Start-Process powershell -WindowStyle Hidden -ArgumentList "-Command", "cd '$PSScriptRoot\backend'; npm run start:dev"
-Start-Sleep -Seconds 5
+npx.cmd prisma migrate deploy
 
-Write-Host "`n[4/4] Starting frontend on port 3000..." -ForegroundColor Yellow
-Start-Process powershell -WindowStyle Hidden -ArgumentList "-Command", "cd '$PSScriptRoot\frontend'; npm run dev"
+node -e "const {PrismaClient}=require('@prisma/client');const p=new PrismaClient();p.user.count().then(n=>process.exit(n>0?0:1)).catch(()=>process.exit(1)).finally(()=>p.`$disconnect())"
+if ($LASTEXITCODE -ne 0) {
+    npx.cmd prisma db seed
+}
 
-Write-Host "`n=== Application launched ===" -ForegroundColor Green
+if (Test-Path "$backendPath\dist") {
+    Remove-Item -Recurse -Force "$backendPath\dist" -ErrorAction SilentlyContinue
+}
+npm.cmd run build
+
+Write-Host "`n[2/3] Configuration du frontend..." -ForegroundColor Yellow
+Set-Location $frontendPath
+if (-not (Test-Path "$frontendPath\node_modules")) {
+    npm.cmd install
+}
+
+Write-Host "`n[3/3] Démarrage des services..." -ForegroundColor Yellow
+# Démarrer le Backend API directement avec node.exe (instantané et sans blocage)
+Start-Process node -ArgumentList "dist/main.js" -WorkingDirectory $backendPath -WindowStyle Hidden
+
+# Démarrer le Frontend Next.js
+Start-Process cmd -ArgumentList "/c npm run dev" -WorkingDirectory $frontendPath -WindowStyle Hidden
+
+Start-Sleep -Seconds 3
+
+Write-Host "`nOuverture du navigateur sur http://localhost:3000..." -ForegroundColor Cyan
+Start-Process "http://localhost:3000"
+
+Write-Host "`n=== Application lancée avec succès ===" -ForegroundColor Green
 Write-Host "Frontend : http://localhost:3000"
 Write-Host "API      : http://localhost:3001/api"
-Write-Host "Account  : admin@oxyral.ma / Admin123!"
+Write-Host "Compte   : admin@oxyral.ma / Admin123!"

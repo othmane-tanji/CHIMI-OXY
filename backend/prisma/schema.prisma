@@ -71,12 +71,13 @@ model Conge {
   id        Int      @id @default(autoincrement())
   employeId Int      @map("employe_id")
   date      DateTime
+  typeJour  String   @default("JOURNEE") @map("type_jour")
   motif     String?
   createdAt DateTime @default(now()) @map("created_at")
 
   employe Employe @relation(fields: [employeId], references: [id], onDelete: Cascade)
 
-  @@unique([employeId, date])
+  @@unique([employeId, date, typeJour])
   @@map("conges")
 }
 
@@ -152,6 +153,8 @@ model FactureVente {
   pdfPath          String?  @map("pdf_path")
   societe          String   @default("OXYRAL") @map("societe")
   chantier         String?  @map("chantier")
+  hasBl            Boolean  @default(false) @map("has_bl")
+  pdfPathBl        String?  @map("pdf_path_bl")
   createdAt        DateTime @default(now()) @map("created_at")
 
   client Client?            @relation(fields: [clientId], references: [id], onDelete: SetNull)
@@ -201,3 +204,38 @@ model Decaissement {
 
   @@map("decaissements")
 }
+
+model Devis {
+  id                Int          @id @default(autoincrement())
+  numeroDevis       String       @map("numero_devis")
+  numeroDevisMiddle String       @default("064") @map("numero_devis_middle")
+  dateDevis         DateTime     @map("date_devis")
+  objet             String
+  clientNom         String       @default("") @map("client_nom")
+  totalHt           Decimal      @default(0) @map("total_ht")
+  totalTva          Decimal      @default(0) @map("total_tva")
+  totalTtc          Decimal      @default(0) @map("total_ttc")
+  docxPath          String?      @map("docx_path")
+  createdAt         DateTime     @default(now()) @map("created_at")
+
+  lignes DevisLigne[]
+
+  @@map("devis")
+}
+
+model DevisLigne {
+  id           Int     @id @default(autoincrement())
+  devisId      Int     @map("devis_id")
+  designation  String
+  nbSeaux      Decimal @default(0) @map("nb_seaux")
+  qtySeauKg    Decimal @default(0) @map("qty_seau_kg")
+  quantiteKg   Decimal @default(0) @map("quantite_kg")
+  prixUnitaire Decimal @map("prix_unitaire")
+  montantHt    Decimal @map("montant_ht")
+  ordre        Int     @default(0)
+
+  devis Devis @relation(fields: [devisId], references: [id], onDelete: Cascade)
+
+  @@map("devis_lignes")
+}
+

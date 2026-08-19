@@ -19,7 +19,12 @@ export default function LoginPage() {
       localStorage.setItem('user', JSON.stringify(res.user));
       window.location.href = '/dashboard';
     } catch (err: any) {
-      setError(err.message || 'Erreur de connexion');
+      const msg = err?.message || '';
+      if (msg.includes('Failed to fetch') || msg.includes('fetch')) {
+        setError('Le serveur backend est en cours de démarrage... Veuillez cliquer à nouveau sur "Se connecter" dans quelques secondes.');
+      } else {
+        setError(msg || 'Erreur de connexion');
+      }
     } finally {
       setLoading(false);
     }

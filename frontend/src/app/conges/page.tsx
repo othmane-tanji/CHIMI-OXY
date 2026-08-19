@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Sun, Moon, Clock, FileSpreadsheet } from 'lucide-react';
 import { congesApi, employesApi } from '@/lib/api';
 import { PageHeader } from '@/components/PageHeader';
 import { Modal } from '@/components/Modal';
@@ -31,6 +31,7 @@ export default function CongesPage() {
 
   const [formEmploye, setFormEmploye] = useState('');
   const [formSolde, setFormSolde] = useState<any>(null);
+  const [formTypeJour, setFormTypeJour] = useState('JOURNEE'); // 'JOURNEE' | 'MATIN' | 'APRES_MIDI'
   const [formMotif, setFormMotif] = useState('');
   const [formDate, setFormDate] = useState('');
   const [datesSelectionnees, setDatesSelectionnees] = useState<string[]>([]);
@@ -44,7 +45,7 @@ export default function CongesPage() {
 
     const [congesData, soldesData] = await Promise.all([
       congesApi.getAll(tableParams),
-      congesApi.getSoldes(moisCourant, anneeCourante),
+      congesApi.getSoldes(+tableMois, +tableAnnee),
     ]);
     setConges(congesData);
     setSoldes(soldesData.employes);
@@ -52,7 +53,7 @@ export default function CongesPage() {
 
     if (tableEmploye) {
       const [soldeData, resume] = await Promise.all([
-        congesApi.getSolde(+tableEmploye),
+        congesApi.getSolde(+tableEmploye, +tableAnnee),
         congesApi.getResumeMensuel(+tableEmploye, +tableAnnee),
       ]);
       setSolde(soldeData);
@@ -61,7 +62,7 @@ export default function CongesPage() {
       setSolde(null);
       setResumeMensuel(null);
     }
-  }, [tableEmploye, tableMois, tableAnnee, moisCourant, anneeCourante]);
+  }, [tableEmploye, tableMois, tableAnnee]);
 
   useEffect(() => {
     employesApi.getAll().then(setEmployes);
@@ -73,7 +74,7 @@ export default function CongesPage() {
 
   const handleFormEmployeChange = async (id: string) => {
     setFormEmploye(id);
-    setFormSolde(id ? await congesApi.getSolde(+id) : null);
+    setFormSolde(id ? await congesApi.getSolde(+id, +tableAnnee) : null);
   };
 
   const ajouterDate = () => {
@@ -106,11 +107,13 @@ export default function CongesPage() {
       await congesApi.create({
         employeId: +formEmploye,
         dates: datesSelectionnees,
+        typeJour: formTypeJour,
         motif: formMotif || undefined,
       });
       setModal(false);
       setFormEmploye('');
       setFormSolde(null);
+      setFormTypeJour('JOURNEE');
       setFormMotif('');
       setDatesSelectionnees([]);
       loadData();
@@ -125,6 +128,38 @@ export default function CongesPage() {
     loadData();
   };
 
+  const handleDownloadExcel = async (
+    employeId: number,
+    nom: string,
+    prenom: string,
+    moisOptional?: number,
+    isAllYears?: boolean,
+  ) => {
+    try {
+      const nomClean = `${prenom}-${nom}`.toLowerCase().replace(/[^a-z0-9]/g, '-');
+      const moisNoms = [
+        'janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin',
+        'juillet', 'aout', 'septembre', 'octobre', 'novembre', 'decembre',
+      ];
+      const moisSuffix = !isAllYears && moisOptional ? `-${moisNoms[moisOptional - 1]}` : '';
+      const anneeSuffix = isAllYears ? '-toutes-les-annees' : `-${tableAnnee}`;
+      const filename = `releve-conges-${nomClean}${moisSuffix}${anneeSuffix}.xlsx`;
+      
+      await congesApi.downloadExcel(employeId, filename, isAllYears ? 0 : +tableAnnee, isAllYears ? undefined : moisOptional);
+    } catch (err: any) {
+      alert('Erreur lors du téléchargement Excel : ' + err.message);
+    }
+  };
+
+  const handleDownloadGlobalExcel = async () => {
+    try {
+      const filename = `releve-conges-tous-les-employes-${tableAnnee}.xlsx`;
+      await congesApi.downloadGlobalExcel(filename, +tableAnnee);
+    } catch (err: any) {
+      alert('Erreur lors du téléchargement Excel global : ' + err.message);
+    }
+  };
+
   const moisFiltre = resumeMensuel?.mois?.find(
     (m: any) => m.mois === +tableMois,
   );
@@ -133,26 +168,59 @@ export default function CongesPage() {
     ? employes.find((e) => String(e.id) === tableEmploye)
     : null;
 
+  const multiplicateurType = formTypeJour === 'JOURNEE' ? 1 : 0.5;
+  const totalJoursForm = datesSelectionnees.length * multiplicateurType;
+
+  const nomMoisFiltreLabel = MOIS.find((m) => m.value === +tableMois)?.label;
+
   return (
     <div>
       <PageHeader
-        title="Gestion des congés"
-        description="Sélection des jours exacts d'absence · 0j (<6 mois) · 9j/an (≥6 mois) · 18j/an (>1 an)"
+        title="Gestion des congés & Absences"
+        description="Gestion des absences (journées complètes ou demi-journées : matinée / après-midi)"
         action={
-          <button
-            onClick={() => {
-              setModal(true);
-              setError('');
-              setDatesSelectionnees([]);
-            }}
-            className="btn-primary flex items-center gap-2"
-          >
-            <Plus size={16} /> Ajouter des jours
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={handleDownloadGlobalExcel}
+              className="btn-secondary flex items-center gap-1.5 border-blue-600 text-blue-700 bg-blue-50/50 hover:bg-blue-100 dark:border-blue-500 dark:text-blue-400 dark:bg-blue-950/40 dark:hover:bg-blue-900/60 font-semibold"
+              title="Télécharger UN SEUL fichier Excel avec CHAQUE employé sur sa propre feuille d'onglet"
+            >
+              <FileSpreadsheet size={16} className="text-blue-600 dark:text-blue-400" /> Export Master Excel (Tous les employés)
+            </button>
+            {tableEmploye && employeFiltreLabel && (
+              <>
+                <button
+                  onClick={() => handleDownloadExcel(+tableEmploye, employeFiltreLabel.nom, employeFiltreLabel.prenom, +tableMois)}
+                  className="btn-secondary flex items-center gap-1.5 border-emerald-600 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-500 dark:text-emerald-400 dark:hover:bg-emerald-950/40"
+                  title="Télécharger l'Excel pour le mois sélectionné"
+                >
+                  <FileSpreadsheet size={16} className="text-emerald-600" /> Excel ({nomMoisFiltreLabel})
+                </button>
+                <button
+                  onClick={() => handleDownloadExcel(+tableEmploye, employeFiltreLabel.nom, employeFiltreLabel.prenom, undefined, true)}
+                  className="btn-secondary flex items-center gap-1.5 border-purple-600 text-purple-700 hover:bg-purple-50 dark:border-purple-500 dark:text-purple-400 dark:hover:bg-purple-950/40"
+                  title="Télécharger l'Excel historique de TOUTES les années"
+                >
+                  <FileSpreadsheet size={16} className="text-purple-600" /> Excel (Toutes les années)
+                </button>
+              </>
+            )}
+            <button
+              onClick={() => {
+                setModal(true);
+                setError('');
+                setDatesSelectionnees([]);
+                setFormTypeJour('JOURNEE');
+              }}
+              className="btn-primary flex items-center gap-2"
+            >
+              <Plus size={16} /> Ajouter des absences
+            </button>
+          </div>
         }
       />
 
-      {/* Soldes de tous les employés (mois sélectionné) */}
+      {/* Soldes de tous les employés */}
       {soldesPeriode && (
         <p className="mb-3 text-sm text-gray-500">
           Soldes pour{' '}
@@ -160,15 +228,15 @@ export default function CongesPage() {
             {MOIS.find((m) => m.value === soldesPeriode.mois)?.label}{' '}
             {soldesPeriode.annee}
           </strong>
-          {' '}— jours pris = absences de ce mois uniquement
+          {' '}— cliquez sur un employé ou sur un mois ci-dessous pour télécharger son relevé
         </p>
       )}
       <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {soldes.map((s) => (
-          <button
+          <div
             key={s.employeId}
             onClick={() => setTableEmploye(String(s.employeId))}
-            className={`card text-left transition hover:border-brand-500 ${
+            className={`card cursor-pointer text-left transition hover:border-brand-500 ${
               tableEmploye === String(s.employeId)
                 ? 'border-brand-500 ring-2 ring-brand-500/20'
                 : ''
@@ -188,21 +256,72 @@ export default function CongesPage() {
                 <p className="text-xs text-gray-500">disponibles</p>
               </div>
             </div>
-            <div className="mt-2 flex gap-3 text-xs text-gray-500">
-              <span>Droit : {s.soldeInitial}j</span>
-              <span>Pris ce mois : {s.joursConsommes}j</span>
+            <div className="mt-3 flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-800">
+              <div className="flex gap-3 text-xs text-gray-500">
+                <span>Droit : {s.soldeInitial}j</span>
+                <span>Pris ce mois : {s.joursPrisMois || 0}j</span>
+              </div>
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDownloadExcel(s.employeId, s.nom, s.prenom, +tableMois);
+                  }}
+                  title={`Télécharger Excel pour ${nomMoisFiltreLabel}`}
+                  className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-2 py-1 rounded dark:bg-emerald-950/40 dark:text-emerald-400"
+                >
+                  <FileSpreadsheet size={13} /> {nomMoisFiltreLabel?.substring(0, 3)}
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDownloadExcel(s.employeId, s.nom, s.prenom, undefined, true);
+                  }}
+                  title="Télécharger l'Excel de TOUTES les années"
+                  className="flex items-center gap-1 text-[11px] font-semibold text-purple-600 hover:text-purple-700 bg-purple-50 px-2 py-1 rounded dark:bg-purple-950/40 dark:text-purple-400"
+                >
+                  <FileSpreadsheet size={13} /> Toutes années
+                </button>
+              </div>
             </div>
-          </button>
+          </div>
         ))}
       </div>
 
-      {/* Résumé employé sélectionné (via filtre tableau) */}
+      {/* Résumé employé sélectionné */}
       {solde && (
         <div className="mb-6 grid gap-4 lg:grid-cols-2">
           <div className="card">
-            <h3 className="mb-3 font-semibold">
-              Solde — {solde.employe.prenom} {solde.employe.nom}
-            </h3>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <h3 className="font-semibold">
+                Solde — {solde.employe.prenom} {solde.employe.nom}
+              </h3>
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  onClick={() => handleDownloadExcel(solde.employe.id, solde.employe.nom, solde.employe.prenom, +tableMois)}
+                  className="btn-secondary text-xs flex items-center gap-1.5 border-emerald-600 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-500 dark:text-emerald-400"
+                  title={`Télécharger Excel du mois de ${nomMoisFiltreLabel}`}
+                >
+                  <FileSpreadsheet size={14} className="text-emerald-600" /> Excel ({nomMoisFiltreLabel})
+                </button>
+                <button
+                  onClick={() => handleDownloadExcel(solde.employe.id, solde.employe.nom, solde.employe.prenom)}
+                  className="btn-secondary text-xs flex items-center gap-1.5 text-gray-600 hover:bg-gray-100"
+                  title={`Télécharger l'Excel complet de l'année ${tableAnnee}`}
+                >
+                  {tableAnnee}
+                </button>
+                <button
+                  onClick={() => handleDownloadExcel(solde.employe.id, solde.employe.nom, solde.employe.prenom, undefined, true)}
+                  className="btn-secondary text-xs flex items-center gap-1.5 border-purple-600 text-purple-700 hover:bg-purple-50 dark:border-purple-500 dark:text-purple-400"
+                  title="Télécharger l'Excel historique de TOUTES les années"
+                >
+                  <FileSpreadsheet size={14} className="text-purple-600" /> Toutes les années
+                </button>
+              </div>
+            </div>
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
                 <p className="text-sm text-gray-500">Droit annuel</p>
@@ -211,7 +330,7 @@ export default function CongesPage() {
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Consommés</p>
+                <p className="text-sm text-gray-500">Consommés ({tableAnnee})</p>
                 <p className="text-xl font-bold text-amber-600">
                   {solde.joursConsommes}j
                 </p>
@@ -224,21 +343,31 @@ export default function CongesPage() {
               </div>
             </div>
             {moisFiltre && (
-              <div className="mt-4 rounded-lg bg-gray-50 p-3 text-sm dark:bg-gray-800">
-                <span className="text-gray-500">
-                  {MOIS.find((m) => m.value === +tableMois)?.label}{' '}
-                  {tableAnnee} :
-                </span>{' '}
-                <strong>{moisFiltre.joursAbsents} jour(s) absent(s)</strong>
+              <div className="mt-4 flex items-center justify-between rounded-lg bg-brand-50 p-3 text-sm dark:bg-brand-900/20">
+                <div>
+                  <span className="text-gray-500">Mois sélectionné ({nomMoisFiltreLabel}) : </span>
+                  <strong>{moisFiltre.joursAbsents} jour(s) absent(s)</strong>
+                </div>
+                <button
+                  onClick={() => handleDownloadExcel(solde.employe.id, solde.employe.nom, solde.employe.prenom, +tableMois)}
+                  className="text-xs font-semibold text-emerald-700 hover:underline flex items-center gap-1"
+                >
+                  <FileSpreadsheet size={13} /> Télécharger cet Excel
+                </button>
               </div>
             )}
           </div>
 
           {resumeMensuel && (
             <div className="card overflow-x-auto">
-              <h3 className="mb-3 font-semibold">
-                Récapitulatif mensuel {tableAnnee}
-              </h3>
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="font-semibold">
+                  Récapitulatif mensuel {tableAnnee}
+                </h3>
+                <span className="text-xs text-gray-500">
+                  Cliquez sur un mois pour le filtrer
+                </span>
+              </div>
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b dark:border-gray-800">
@@ -251,11 +380,19 @@ export default function CongesPage() {
                   {resumeMensuel.mois.map((m: any) => (
                     <tr
                       key={m.mois}
-                      className={`border-b border-gray-100 dark:border-gray-800 ${
-                        m.mois === +tableMois ? 'bg-brand-50 dark:bg-brand-900/20' : ''
+                      onClick={() => setTableMois(String(m.mois))}
+                      className={`border-b border-gray-100 dark:border-gray-800 cursor-pointer transition hover:bg-brand-50 dark:hover:bg-brand-900/30 ${
+                        m.mois === +tableMois ? 'bg-brand-100/70 font-bold dark:bg-brand-900/40 border-l-4 border-l-brand-600' : ''
                       }`}
                     >
-                      <td className="table-td">{m.moisLabel}</td>
+                      <td className="table-td flex items-center justify-between">
+                        <span>{m.moisLabel}</span>
+                        {m.mois === +tableMois && (
+                          <span className="text-[10px] uppercase font-bold text-brand-700 bg-brand-200 px-1.5 py-0.5 rounded dark:bg-brand-800 dark:text-brand-200">
+                            Sélectionné
+                          </span>
+                        )}
+                      </td>
                       <td className="table-td font-medium">
                         {m.joursAbsents > 0 ? `${m.joursAbsents}j` : '-'}
                       </td>
@@ -277,7 +414,7 @@ export default function CongesPage() {
           <div>
             <h3 className="font-semibold">Jours d'absence enregistrés</h3>
             <p className="mt-1 text-xs text-gray-500">
-              {conges.length} jour(s)
+              {conges.length} enregistrement(s)
               {employeFiltreLabel
                 ? ` — ${employeFiltreLabel.prenom} ${employeFiltreLabel.nom}`
                 : ' — tous les employés'}
@@ -348,6 +485,7 @@ export default function CongesPage() {
               <th className="table-th">Employé</th>
               <th className="table-th">Société</th>
               <th className="table-th">Date</th>
+              <th className="table-th">Durée / Moment</th>
               <th className="table-th">Motif</th>
               <th className="table-th">Actions</th>
             </tr>
@@ -355,7 +493,7 @@ export default function CongesPage() {
           <tbody>
             {conges.length === 0 ? (
               <tr>
-                <td colSpan={5} className="table-td text-center text-gray-500">
+                <td colSpan={6} className="table-td text-center text-gray-500">
                   Aucun jour d'absence
                   {employeFiltreLabel
                     ? ` pour ${employeFiltreLabel.prenom} ${employeFiltreLabel.nom}`
@@ -374,6 +512,31 @@ export default function CongesPage() {
                   </td>
                   <td className="table-td">{c.employe.societe}</td>
                   <td className="table-td">{formatDate(c.date)}</td>
+                  <td className="table-td">
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                        c.typeJour === 'MATIN'
+                          ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
+                          : c.typeJour === 'APRES_MIDI'
+                          ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300'
+                          : 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'
+                      }`}
+                    >
+                      {c.typeJour === 'MATIN' ? (
+                        <>
+                          <Sun size={12} /> Matinée (0.5j)
+                        </>
+                      ) : c.typeJour === 'APRES_MIDI' ? (
+                        <>
+                          <Moon size={12} /> Après-midi (0.5j)
+                        </>
+                      ) : (
+                        <>
+                          <Clock size={12} /> Journée entière (1.0j)
+                        </>
+                      )}
+                    </span>
+                  </td>
                   <td className="table-td">{c.motif || '-'}</td>
                   <td className="table-td">
                     <button
@@ -396,7 +559,7 @@ export default function CongesPage() {
         onClose={() => setModal(false)}
         title="Ajouter des jours d'absence"
       >
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="label">Employé</label>
             <select
@@ -405,7 +568,7 @@ export default function CongesPage() {
               onChange={(e) => handleFormEmployeChange(e.target.value)}
               required
             >
-              <option value="">Sélectionner...</option>
+              <option value="">Sélectionner un employé...</option>
               {employes.map((e) => (
                 <option key={e.id} value={e.id}>
                   {e.prenom} {e.nom} ({e.societe})
@@ -424,7 +587,49 @@ export default function CongesPage() {
           )}
 
           <div>
-            <label className="label">Choisir un jour exact</label>
+            <label className="label">Type / Durée de l'absence</label>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => setFormTypeJour('JOURNEE')}
+                className={`rounded-lg border p-2.5 text-center text-xs font-medium transition ${
+                  formTypeJour === 'JOURNEE'
+                    ? 'border-brand-600 bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300 font-semibold ring-2 ring-brand-500/20'
+                    : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                }`}
+              >
+                <Clock size={16} className="mx-auto mb-1 text-brand-600" />
+                Journée entière (1j)
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormTypeJour('MATIN')}
+                className={`rounded-lg border p-2.5 text-center text-xs font-medium transition ${
+                  formTypeJour === 'MATIN'
+                    ? 'border-amber-600 bg-amber-50 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 font-semibold ring-2 ring-amber-500/20'
+                    : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                }`}
+              >
+                <Sun size={16} className="mx-auto mb-1 text-amber-600" />
+                Matinée (0.5j)
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormTypeJour('APRES_MIDI')}
+                className={`rounded-lg border p-2.5 text-center text-xs font-medium transition ${
+                  formTypeJour === 'APRES_MIDI'
+                    ? 'border-purple-600 bg-purple-50 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 font-semibold ring-2 ring-purple-500/20'
+                    : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                }`}
+              >
+                <Moon size={16} className="mx-auto mb-1 text-purple-600" />
+                Après-midi (0.5j)
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="label">Choisir une ou plusieurs dates</label>
             <div className="flex gap-2">
               <input
                 type="date"
@@ -441,37 +646,40 @@ export default function CongesPage() {
               </button>
             </div>
             <p className="mt-1 text-xs text-gray-500">
-              Cliquez sur chaque jour d'absence (les dimanches sont exclus)
+              Sélectionnez chaque date d'absence (dimanches exclus)
             </p>
           </div>
 
           {datesSelectionnees.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {datesSelectionnees.map((d) => (
-                <span
-                  key={d}
-                  className="inline-flex items-center gap-1 rounded-full bg-brand-100 px-3 py-1 text-sm text-brand-700 dark:bg-brand-900 dark:text-brand-300"
-                >
-                  {formatDate(d)}
-                  <button
-                    type="button"
-                    onClick={() => retirerDate(d)}
-                    className="hover:text-red-600"
+            <div className="space-y-2">
+              <div className="flex flex-wrap gap-2">
+                {datesSelectionnees.map((d) => (
+                  <span
+                    key={d}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-brand-100 px-3 py-1 text-xs font-medium text-brand-700 dark:bg-brand-900 dark:text-brand-300"
                   >
-                    <X size={14} />
-                  </button>
-                </span>
-              ))}
-              <span className="self-center text-sm text-gray-500">
-                = {datesSelectionnees.length} jour(s)
-              </span>
+                    {formatDate(d)}
+                    <button
+                      type="button"
+                      onClick={() => retirerDate(d)}
+                      className="hover:text-red-600"
+                    >
+                      <X size={14} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <p className="text-xs font-semibold text-brand-600">
+                Décompte total : {totalJoursForm} jour(s) ({datesSelectionnees.length} date(s) × {multiplicateurType}j)
+              </p>
             </div>
           )}
 
           <div>
-            <label className="label">Motif</label>
+            <label className="label">Motif (optionnel)</label>
             <input
               className="input"
+              placeholder="Ex. Congé personnel, RDV médical..."
               value={formMotif}
               onChange={(e) => setFormMotif(e.target.value)}
             />
@@ -488,8 +696,7 @@ export default function CongesPage() {
               Annuler
             </button>
             <button type="submit" className="btn-primary">
-              Enregistrer ({datesSelectionnees.length} jour
-              {datesSelectionnees.length > 1 ? 's' : ''})
+              Enregistrer ({totalJoursForm} jour{totalJoursForm > 1 ? 's' : ''})
             </button>
           </div>
         </form>

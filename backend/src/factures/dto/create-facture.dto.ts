@@ -1,5 +1,6 @@
 import {
   IsArray,
+  IsBoolean,
   IsDateString,
   IsInt,
   IsNumber,
@@ -91,6 +92,10 @@ export class CreateFactureVenteDto {
   @IsOptional()
   @IsString()
   chantier?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  hasBl?: boolean;
 
   @IsArray()
   @ValidateNested({ each: true })

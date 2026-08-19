@@ -9,6 +9,11 @@ import {
   normaliserDate,
 } from '../common/conges.utils';
 
+function getValeurConge(typeJour?: string): number {
+  if (typeJour === 'MATIN' || typeJour === 'APRES_MIDI') return 0.5;
+  return 1.0;
+}
+
 @Injectable()
 export class CongesService {
   constructor(private prisma: PrismaService) {}
@@ -22,27 +27,72 @@ export class CongesService {
     return employe;
   }
 
-  private buildSolde(employe: { dateEmbauche: Date; conges: { date: Date }[] }) {
-    const soldeInitial = getDroitAnnuel(employe.dateEmbauche);
-    const joursConsommes = employe.conges.length;
-    const soldeRestant = soldeInitial - joursConsommes;
-    return { soldeInitial, joursConsommes, soldeRestant };
+  private buildSolde(
+    employe: { dateEmbauche: Date; conges: { date: Date; typeJour?: string }[] },
+    annee: number = new Date().getFullYear(),
+  ) {
+    const dEmbauche = normaliserDate(employe.dateEmbauche);
+    const startYear = dEmbauche.getFullYear();
+
+    let reliquatCumule = 0;
+    let soldeInitialTarget = 0;
+    let joursConsommesTarget = 0;
+    let droitTarget = 0;
+
+    for (let y = startYear; y <= annee; y++) {
+      const refDateYear = new Date(y, 11, 31);
+      const droitAnnee = getDroitAnnuel(dEmbauche, refDateYear);
+
+      const congesYear = employe.conges.filter((c) => {
+        const d = normaliserDate(c.date);
+        return d.getFullYear() === y;
+      });
+
+      const prisYear = congesYear.reduce(
+        (sum, c) => sum + getValeurConge(c.typeJour),
+        0,
+      );
+
+      const soldeDisponibleYear = droitAnnee + reliquatCumule;
+      const soldeRestantYear = soldeDisponibleYear - prisYear;
+
+      if (y === annee) {
+        droitTarget = droitAnnee;
+        soldeInitialTarget = soldeDisponibleYear;
+        joursConsommesTarget = prisYear;
+      }
+
+      reliquatCumule = Math.max(0, soldeRestantYear);
+    }
+
+    const soldeRestant = soldeInitialTarget - joursConsommesTarget;
+
+    return {
+      soldeInitial: soldeInitialTarget,
+      droitAnnuelPure: droitTarget,
+      joursConsommes: joursConsommesTarget,
+      soldeRestant,
+      reliquatReporte: soldeInitialTarget - droitTarget,
+    };
   }
 
   private countCongesMois(
-    conges: { date: Date }[],
+    conges: { date: Date; typeJour?: string }[],
     mois: number,
     annee: number,
   ): number {
-    return conges.filter((c) => {
-      const d = normaliserDate(c.date);
-      return d.getFullYear() === annee && d.getMonth() + 1 === mois;
-    }).length;
+    return conges
+      .filter((c) => {
+        const d = normaliserDate(c.date);
+        return d.getFullYear() === annee && d.getMonth() + 1 === mois;
+      })
+      .reduce((sum, c) => sum + getValeurConge(c.typeJour), 0);
   }
 
-  async getSolde(employeId: number) {
+  async getSolde(employeId: number, annee?: number) {
+    const targetAnnee = annee || new Date().getFullYear();
     const employe = await this.getEmployeAvecConges(employeId);
-    const { soldeInitial, joursConsommes, soldeRestant } = this.buildSolde(employe);
+    const { soldeInitial, joursConsommes, soldeRestant } = this.buildSolde(employe, targetAnnee);
 
     return {
       employe: {
@@ -52,6 +102,7 @@ export class CongesService {
         dateEmbauche: employe.dateEmbauche,
         societe: employe.societe,
       },
+      annee: targetAnnee,
       soldeInitial,
       joursConsommes,
       soldeRestant,
@@ -68,9 +119,8 @@ export class CongesService {
       mois,
       annee,
       employes: employes.map((employe) => {
-        const soldeInitial = getDroitAnnuel(employe.dateEmbauche);
-        const joursConsommes = this.countCongesMois(employe.conges, mois, annee);
-        const soldeRestant = soldeInitial - joursConsommes;
+        const { soldeInitial, joursConsommes, soldeRestant } = this.buildSolde(employe, annee);
+        const joursPrisMois = this.countCongesMois(employe.conges, mois, annee);
         return {
           employeId: employe.id,
           nom: employe.nom,
@@ -78,6 +128,7 @@ export class CongesService {
           societe: employe.societe,
           soldeInitial,
           joursConsommes,
+          joursPrisMois,
           soldeRestant,
         };
       }),
@@ -86,7 +137,7 @@ export class CongesService {
 
   async getResumeMensuel(employeId: number, annee: number) {
     const employe = await this.getEmployeAvecConges(employeId);
-    const soldeInitial = getDroitAnnuel(employe.dateEmbauche);
+    const { soldeInitial } = this.buildSolde(employe, annee);
 
     const moisNoms = [
       'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
@@ -96,10 +147,12 @@ export class CongesService {
     let cumulConsomme = 0;
     const mois = Array.from({ length: 12 }, (_, i) => {
       const moisNum = i + 1;
-      const joursAbsents = employe.conges.filter((c) => {
-        const d = normaliserDate(c.date);
-        return d.getFullYear() === annee && d.getMonth() + 1 === moisNum;
-      }).length;
+      const joursAbsents = employe.conges
+        .filter((c) => {
+          const d = normaliserDate(c.date);
+          return d.getFullYear() === annee && d.getMonth() + 1 === moisNum;
+        })
+        .reduce((sum, c) => sum + getValeurConge(c.typeJour), 0);
 
       cumulConsomme += joursAbsents;
 
@@ -113,6 +166,11 @@ export class CongesService {
 
     const totalAnnee = mois.reduce((sum, m) => sum + m.joursAbsents, 0);
 
+    const totalConsommeEmploye = employe.conges.reduce(
+      (sum, c) => sum + getValeurConge(c.typeJour),
+      0,
+    );
+
     return {
       employe: {
         id: employe.id,
@@ -123,7 +181,7 @@ export class CongesService {
       annee,
       soldeInitial,
       totalAbsencesAnnee: totalAnnee,
-      soldeRestant: soldeInitial - employe.conges.length,
+      soldeRestant: soldeInitial - totalConsommeEmploye,
       mois,
     };
   }
@@ -157,6 +215,8 @@ export class CongesService {
   async create(dto: CreateCongeDto) {
     const employe = await this.getEmployeAvecConges(dto.employeId);
     const datesUniques = [...new Set(dto.dates.map((d) => d.split('T')[0]))].sort();
+    const typeJour = dto.typeJour || 'JOURNEE';
+    const valeurParJour = getValeurConge(typeJour);
 
     const datesInvalides = datesUniques.filter((d) => isDimanche(normaliserDate(d)));
     if (datesInvalides.length > 0) {
@@ -165,32 +225,31 @@ export class CongesService {
       );
     }
 
-    const datesExistantes = employe.conges.map((c) =>
-      normaliserDate(c.date).toISOString().split('T')[0],
+    const congesExistants = employe.conges.map((c) => ({
+      dateStr: normaliserDate(c.date).toISOString().split('T')[0],
+      typeJour: c.typeJour || 'JOURNEE',
+    }));
+
+    const doublons = datesUniques.filter((d) =>
+      congesExistants.some(
+        (c) =>
+          c.dateStr === d &&
+          (c.typeJour === 'JOURNEE' || typeJour === 'JOURNEE' || c.typeJour === typeJour),
+      ),
     );
-    const doublons = datesUniques.filter((d) => datesExistantes.includes(d));
     if (doublons.length > 0) {
       throw new BadRequestException(
-        `Ces jours sont déjà enregistrés : ${doublons.join(', ')}`,
+        `Ces jours ou demi-journées sont déjà enregistrés : ${doublons.join(', ')}`,
       );
     }
 
-    const { soldeInitial, soldeRestant } = this.buildSolde(employe);
-    if (soldeInitial === 0) {
-      throw new BadRequestException(
-        'Cet employé a moins de 6 mois d\'ancienneté et n\'a pas droit aux congés.',
-      );
-    }
-    if (datesUniques.length > soldeRestant) {
-      throw new BadRequestException(
-        `Solde insuffisant. Solde restant : ${soldeRestant} jour(s), demandé : ${datesUniques.length}`,
-      );
-    }
+    // Allow recording absences for all employees even if solde is 0, negative, or < 6 months seniority
 
     await this.prisma.conge.createMany({
       data: datesUniques.map((date) => ({
         employeId: dto.employeId,
         date: normaliserDate(date),
+        typeJour,
         motif: dto.motif,
       })),
     });
@@ -202,5 +261,117 @@ export class CongesService {
     const conge = await this.prisma.conge.findUnique({ where: { id } });
     if (!conge) throw new NotFoundException('Jour de congé non trouvé');
     return this.prisma.conge.delete({ where: { id } });
+  }
+
+  async exportExcel(employeId: number, annee?: number, mois?: number) {
+    const isAllYears = annee === 0 || annee === -1;
+    const targetAnnee = isAllYears ? new Date().getFullYear() : (annee || new Date().getFullYear());
+    const employe = await this.getEmployeAvecConges(employeId);
+
+    let soldeInitial: number;
+    let joursConsommes: number;
+    let soldeRestant: number;
+
+    if (isAllYears) {
+      soldeInitial = getDroitAnnuel(employe.dateEmbauche);
+      joursConsommes = employe.conges.reduce(
+        (sum, c) => sum + getValeurConge(c.typeJour),
+        0,
+      );
+      soldeRestant = soldeInitial - joursConsommes;
+    } else {
+      const res = this.buildSolde(employe, targetAnnee);
+      soldeInitial = res.soldeInitial;
+      joursConsommes = res.joursConsommes;
+      soldeRestant = res.soldeRestant;
+    }
+
+    const congesEmploye = isAllYears
+      ? employe.conges
+      : employe.conges.filter((c) => {
+          const d = normaliserDate(c.date);
+          const sameYear = d.getFullYear() === targetAnnee;
+          if (!sameYear) return false;
+          if (mois) {
+            return d.getMonth() + 1 === mois;
+          }
+          return true;
+        });
+
+    const { generateCongeExcel } = await import('./conges-excel.generator');
+
+    const buffer = await generateCongeExcel({
+      employe: {
+        id: employe.id,
+        nom: employe.nom,
+        prenom: employe.prenom,
+        societe: employe.societe,
+        dateEmbauche: employe.dateEmbauche,
+        cin: employe.cin || undefined,
+      },
+      soldeInitial,
+      joursConsommes,
+      soldeRestant,
+      annee: isAllYears ? 0 : targetAnnee,
+      mois: isAllYears ? undefined : (mois || undefined),
+      isAllYears,
+      conges: congesEmploye,
+    });
+
+    const nomClean = `${employe.prenom}-${employe.nom}`.toLowerCase().replace(/[^a-z0-9]/g, '-');
+    const moisNoms = [
+      'janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin',
+      'juillet', 'aout', 'septembre', 'octobre', 'novembre', 'decembre',
+    ];
+    const moisSuffix = !isAllYears && mois && mois >= 1 && mois <= 12 ? `-${moisNoms[mois - 1]}` : '';
+    const anneeSuffix = isAllYears ? '-toutes-les-annees' : `-${targetAnnee}`;
+
+    return {
+      filename: `releve-conges-${nomClean}${moisSuffix}${anneeSuffix}.xlsx`,
+      buffer,
+    };
+  }
+
+  async exportExcelGlobal(annee?: number) {
+    const targetAnnee = annee || new Date().getFullYear();
+    const employes = await this.prisma.employe.findMany({
+      include: { conges: true },
+      orderBy: [{ societe: 'asc' }, { nom: 'asc' }, { prenom: 'asc' }],
+    });
+
+    const employesData = employes.map((employe) => {
+      const { soldeInitial, joursConsommes, soldeRestant } = this.buildSolde(employe, targetAnnee);
+      const congesEmploye = employe.conges.filter((c) => {
+        const d = normaliserDate(c.date);
+        return d.getFullYear() === targetAnnee;
+      });
+
+      return {
+        employe: {
+          id: employe.id,
+          nom: employe.nom,
+          prenom: employe.prenom,
+          societe: employe.societe,
+          dateEmbauche: employe.dateEmbauche,
+          cin: employe.cin || undefined,
+        },
+        soldeInitial,
+        joursConsommes,
+        soldeRestant,
+        conges: congesEmploye,
+      };
+    });
+
+    const { generateCongesGlobalExcel } = await import('./conges-excel.generator');
+
+    const buffer = await generateCongesGlobalExcel({
+      annee: targetAnnee,
+      employes: employesData,
+    });
+
+    return {
+      filename: `releve-conges-tous-les-employes-${targetAnnee}.xlsx`,
+      buffer,
+    };
   }
 }

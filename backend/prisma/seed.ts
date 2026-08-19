@@ -8,7 +8,7 @@ async function main() {
 
   await prisma.user.upsert({
     where: { email: 'admin@oxyral.ma' },
-    update: {},
+    update: { password },
     create: {
       email: 'admin@oxyral.ma',
       password,
@@ -16,11 +16,23 @@ async function main() {
     },
   });
 
+  // Clean tables to ensure idempotent seeding without constraint crashes
+  await prisma.conge.deleteMany();
+  await prisma.bulletinPaie.deleteMany();
+  await prisma.factureVenteLigne.deleteMany();
+  await prisma.factureVente.deleteMany();
+  await prisma.factureAchat.deleteMany();
+  await prisma.encaissement.deleteMany();
+  await prisma.decaissement.deleteMany();
+  await prisma.devisLigne.deleteMany();
+  await prisma.devis.deleteMany();
+  await prisma.client.deleteMany();
+  await prisma.fournisseur.deleteMany();
+  await prisma.employe.deleteMany();
+
   const employes = await Promise.all([
-    prisma.employe.upsert({
-      where: { cin: 'AB123456' },
-      update: {},
-      create: {
+    prisma.employe.create({
+      data: {
         nom: 'Benali',
         prenom: 'Karim',
         cin: 'AB123456',
@@ -29,10 +41,8 @@ async function main() {
         societe: 'OXYRAL',
       },
     }),
-    prisma.employe.upsert({
-      where: { cin: 'CD789012' },
-      update: {},
-      create: {
+    prisma.employe.create({
+      data: {
         nom: 'Alaoui',
         prenom: 'Fatima',
         cin: 'CD789012',
@@ -41,10 +51,8 @@ async function main() {
         societe: 'CHIMIRAL',
       },
     }),
-    prisma.employe.upsert({
-      where: { cin: 'EF345678' },
-      update: {},
-      create: {
+    prisma.employe.create({
+      data: {
         nom: 'Tazi',
         prenom: 'Youssef',
         cin: 'EF345678',

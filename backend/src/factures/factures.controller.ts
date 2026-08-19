@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -86,6 +87,18 @@ export class FacturesController {
     const filePath = this.facturesService.getPdfAbsolutePath(pdfPath);
     const societeName = (facture.societe || 'oxyral').toLowerCase();
     const filename = `facture-${societeName}-${facture.numeroFacture.replace(/\//g, '-')}.pdf`;
+    res.download(filePath, filename);
+  }
+
+  @Get('vente/:id/bl/pdf')
+  async downloadVenteBlPdf(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
+    const facture = await this.facturesService.findOneVente(id);
+    if (!facture.hasBl || !facture.pdfPathBl) {
+      throw new BadRequestException("Cette facture n'a pas de Bon de Livraison associé.");
+    }
+    const filePath = this.facturesService.getPdfAbsolutePath(facture.pdfPathBl);
+    const societeName = (facture.societe || 'oxyral').toLowerCase();
+    const filename = `bon-livraison-${societeName}-${facture.numeroFacture.replace(/\//g, '-')}.pdf`;
     res.download(filePath, filename);
   }
 

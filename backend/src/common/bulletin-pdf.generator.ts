@@ -1,23 +1,16 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import sharp = require('sharp');
-import { PDFDocument } from 'pdf-lib';
+const PDFDocument = require('pdfkit');
 import {
-  formatDateFr,
   formatJours,
   formatMontant,
   formatTaux,
   getPeriodeMois,
   round2,
 } from './paie.utils';
+import { montantEnLettresDirhams } from './montant-lettres.utils';
 
-/** Modèle vierge recadré — pixels réels de template-form.png */
-const TEMPLATE_FORM = path.join(process.cwd(), 'assets', 'template-form.png');
-const IMG_W = 723;
-const IMG_H = 952;
-const PAGE_W = 595.276;
-const PAGE_H = 841.89;
-const SOCIETE_CNSS = '8229149';
+const SOCIETE_CNSS_DEFAUT = '8229149';
 
 export interface BulletinCumuls {
   joursIr: number;
@@ -27,55 +20,16 @@ export interface BulletinCumuls {
   cumulRetenuesIr: number;
 }
 
-/** Coordonnées en pixels sur template-form.png (origine haut-gauche) */
-const F = {
-  cnss: { x: 104, y: 83 },
-  periodeDu: { x: 521, y: 117, w: 89 },
-  periodeAu: { x: 622, y: 117, w: 88 },
-  matricule: { x: 15, y: 204, w: 77 },
-  nom: { x: 159, y: 204 },
-  fonction: { x: 336, y: 202, w: 202 },
-  paie1: { x: 538, y: 211, w: 35 },
-  depart: { x: 573, y: 211, w: 42 },
-  sect: { x: 615, y: 211, w: 45 },
-  categ: { x: 660, y: 211, w: 42 },
-  adresse: { x: 108, y: 235 },
-  naissance: { x: 3, y: 315, w: 102 },
-  embauche: { x: 105, y: 315, w: 103 },
-  paie2: { x: 208, y: 315, w: 102 },
-  sitFam: { x: 310, y: 315, w: 82 },
-  ch: { x: 392, y: 315, w: 39 },
-  cin: { x: 431, y: 315, w: 90 },
-  cnssEmp: { x: 521, y: 315, w: 102 },
-  cimr: { x: 623, y: 315, w: 99 },
-  table: {
-    y0: 393,
-    step: 25,
-    code: 54,
-    lib: 98,
-    base: 417,
-    taux: 486,
-    gain: 598,
-    ret: 700,
-  },
-  dec: { y: 780, xs: [121, 164, 207, 250, 290, 329, 368] },
-  totalGain: { x: 483, y: 755, w: 104 },
-  totalRet: { x: 606, y: 758, w: 94 },
-  net: { x: 505, y: 781, w: 206 },
-  cumuls: { y: 850, xs: [3, 95, 260, 411, 552], ws: [92, 165, 151, 141, 155] },
-};
-
 function matricule(id: number): string {
   return String(id).padStart(5, '0');
 }
 
-function esc(text: string): string {
-  return text
-    .replace(/[\u202f\u00a0]/g, ' ')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+function formatDateDot(date: Date): string {
+  if (!date || isNaN(date.getTime())) return '-';
+  const dd = String(date.getDate()).padStart(2, '0');
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const yyyy = date.getFullYear();
+  return `${dd}.${mm}.${yyyy}`;
 }
 
 function arrondisNet(net: number) {
@@ -93,163 +47,650 @@ function formatMontantSigned(n: number): string {
   return n < 0 ? `-${abs}` : abs;
 }
 
-function decompteMonetaire(montant: number): number[] {
-  const vals = [200, 100, 50, 20, 10, 5, 1];
-  let rest = round2(montant);
-  return vals.map((v) => {
-    const c = Math.floor(rest / v);
-    rest = round2(rest - c * v);
-    return c;
-  });
-}
-
-function svgText(
-  text: string,
-  x: number,
-  y: number,
-  opts: { size?: number; weight?: string; anchor?: 'start' | 'middle' | 'end'; width?: number } = {},
-): string {
-  if (!text) return '';
-  const size = opts.size ?? 12;
-  const anchor = opts.anchor ?? 'start';
-  let px = x;
-  if (anchor === 'middle' && opts.width) px = x + opts.width / 2;
-  if (anchor === 'end') px = x;
-  return `<text x="${px}" y="${y + size}" font-family="Times New Roman,serif" font-size="${size}" font-weight="${opts.weight ?? 'normal'}" text-anchor="${anchor}" fill="#000">${esc(text)}</text>`;
-}
-
-function svgBox(
-  text: string,
-  x: number,
-  y: number,
-  w: number,
-  size = 12,
-): string {
-  return svgText(text, x, y, { size, anchor: 'middle', width: w });
-}
-
 export async function generateBulletinPaiePdf(
   bulletin: any,
   outputPath: string,
   cumuls?: BulletinCumuls,
 ): Promise<void> {
-  const employe = bulletin.employe;
+  const employe = bulletin.employe || {};
   const { debut, fin } = getPeriodeMois(bulletin.mois, bulletin.annee);
 
-  if (!fs.existsSync(TEMPLATE_FORM)) {
-    throw new Error(`Modèle introuvable : ${TEMPLATE_FORM}. Exécutez: node scripts/prepare-template-form.js`);
-  }
-
-  const brut = Number(bulletin.salaireBrut);
-  const appoint = Number(bulletin.montantAppointements);
-  const ancien = Number(bulletin.montantAnciennete);
-  const cnss = Number(bulletin.cnss);
-  const amo = Number(bulletin.amo);
-  const ir = Number(bulletin.ir);
-  const transport = Number(bulletin.indemniteTransport);
-  const net = Number(bulletin.salaireNet);
+  const brut = Number(bulletin.salaireBrut || 0);
+  const appoint = Number(bulletin.montantAppointements || 0);
+  const ancien = Number(bulletin.montantAnciennete || 0);
+  const cnss = Number(bulletin.cnss || 0);
+  const amo = Number(bulletin.amo || 0);
+  const ir = Number(bulletin.ir || 0);
+  const transport = Number(bulletin.indemniteTransport || 0);
+  const net = Number(bulletin.salaireNet || 0);
   const baseIr = round2(brut - cnss - amo);
   const { netArrondi, gainArrondis, retArrondis } = arrondisNet(net);
-  const totalGains = round2(brut + transport + gainArrondis);
-  const totalRetenues = round2(Number(bulletin.deductions) + Math.max(0, retArrondis));
+  const totalGains = round2(brut + transport + Math.max(0, gainArrondis));
+  const totalRetenues = round2(
+    Number(bulletin.deductions || 0) + Math.max(0, retArrondis),
+  );
 
-  const sitFam = employe.situationFamiliale || '-';
-  const nbEnfants = employe.nombreEnfants != null ? String(employe.nombreEnfants) : '-';
-  const datePaie = bulletin.datePaie ? formatDateFr(new Date(bulletin.datePaie)) : formatDateFr(new Date());
+  const sitFam = employe.situationFamiliale || 'Célibataire';
+  const nbEnfants =
+    employe.nombreEnfants != null ? String(employe.nombreEnfants) : '0';
+  const datePaie = bulletin.datePaie
+    ? formatDateDot(new Date(bulletin.datePaie))
+    : formatDateDot(new Date());
 
-  type Row = { code: string; lib: string; base?: string; taux?: string; gain?: string; ret?: string };
+  const nomSociete = (employe.societe || 'CHIMIRAL - OXYRAL').toUpperCase().replace(/\//g, '-');
+  const cnssSociete = SOCIETE_CNSS_DEFAUT;
+
+  // Prepare table rows
+  type Row = {
+    code: string;
+    lib: string;
+    base?: string;
+    taux?: string;
+    gain?: string;
+    ret?: string;
+    isBold?: boolean;
+    isSubtotal?: boolean;
+  };
+
   const rows: Row[] = [
     {
       code: '001',
-      lib: 'APPOINTEMENTS',
-      base: formatJours(Number(bulletin.nombreJours)),
-      taux: formatTaux(Number(bulletin.tauxJournalier)),
+      lib: 'APPOINTEMENTS DE BASE',
+      base: formatJours(Number(bulletin.nombreJours || 26)),
+      taux: formatTaux(Number(bulletin.tauxJournalier || 0)),
       gain: formatMontant(appoint),
     },
   ];
+
   if (Number(bulletin.tauxAnciennete) > 0) {
     rows.push({
       code: '030',
-      lib: 'ANCIENNETE',
+      lib: "PRIME D'ANCIENNETE",
       base: formatMontant(appoint),
       taux: formatTaux(Number(bulletin.tauxAnciennete)),
       gain: formatMontant(ancien),
     });
   }
+
   if (Number(bulletin.primes) > 0) {
-    rows.push({ code: '020', lib: 'PRIMES', gain: formatMontant(Number(bulletin.primes)) });
-  }
-  rows.push({ code: '499', lib: 'SALAIRE BRUT', base: formatMontant(brut) });
-  rows.push({ code: '550', lib: 'C.N.S.S.', base: formatMontant(brut), taux: '4,480', ret: formatMontant(cnss) });
-  rows.push({ code: '552', lib: 'A.M.C', base: formatMontant(brut), taux: '2,260', ret: formatMontant(amo) });
-  rows.push({ code: '560', lib: 'I.R', base: formatMontant(baseIr), ret: ir > 0 ? formatMontant(ir) : undefined });
-  rows.push({ code: '654', lib: 'INDEMNITE DE TRANSPORT URBAIN', gain: formatMontant(transport) });
-  if (gainArrondis !== 0) rows.push({ code: '997', lib: 'ARRONDIS', gain: formatMontantSigned(gainArrondis) });
-  if (retArrondis > 0) rows.push({ code: '997', lib: 'ARRONDIS', ret: formatMontant(retArrondis) });
-
-  const parts: string[] = [];
-  parts.push(svgText(SOCIETE_CNSS, F.cnss.x, F.cnss.y));
-  parts.push(svgBox(formatDateFr(debut), F.periodeDu.x, F.periodeDu.y, F.periodeDu.w));
-  parts.push(svgBox(formatDateFr(fin), F.periodeAu.x, F.periodeAu.y, F.periodeAu.w));
-  parts.push(svgBox(matricule(employe.id), F.matricule.x, F.matricule.y, F.matricule.w));
-  parts.push(svgText(`${employe.nom} ${employe.prenom}`.toUpperCase(), F.nom.x, F.nom.y, { weight: 'bold' }));
-  parts.push(svgBox((employe.fonction || 'EMPLOYE').toUpperCase(), F.fonction.x, F.fonction.y, F.fonction.w));
-  parts.push(svgBox('01', F.paie1.x, F.paie1.y, F.paie1.w));
-  parts.push(svgBox('01', F.depart.x, F.depart.y, F.depart.w));
-  parts.push(svgBox('0002', F.sect.x, F.sect.y, F.sect.w));
-  parts.push(svgBox('01', F.categ.x, F.categ.y, F.categ.w));
-  parts.push(svgText(employe.adresse || '-', F.adresse.x, F.adresse.y));
-  parts.push(
-    svgBox(employe.dateNaissance ? formatDateFr(new Date(employe.dateNaissance)) : '-', F.naissance.x, F.naissance.y, F.naissance.w),
-  );
-  parts.push(svgBox(formatDateFr(new Date(employe.dateEmbauche)), F.embauche.x, F.embauche.y, F.embauche.w));
-  parts.push(svgBox(datePaie, F.paie2.x, F.paie2.y, F.paie2.w));
-  parts.push(svgBox(sitFam, F.sitFam.x, F.sitFam.y, F.sitFam.w));
-  parts.push(svgBox(nbEnfants, F.ch.x, F.ch.y, F.ch.w));
-  parts.push(svgBox(employe.cin, F.cin.x, F.cin.y, F.cin.w));
-  parts.push(svgBox(employe.cnss || '-', F.cnssEmp.x, F.cnssEmp.y, F.cnssEmp.w));
-  parts.push(svgBox(employe.cimr || '-', F.cimr.x, F.cimr.y, F.cimr.w));
-
-  rows.forEach((r, i) => {
-    const y = F.table.y0 + i * F.table.step;
-    parts.push(svgText(r.code, F.table.code, y, { anchor: 'middle' }));
-    parts.push(svgText(r.lib, F.table.lib, y));
-    if (r.base) parts.push(svgText(r.base, F.table.base, y, { anchor: 'end' }));
-    if (r.taux) parts.push(svgText(r.taux, F.table.taux, y, { anchor: 'end' }));
-    if (r.gain) parts.push(svgText(r.gain, F.table.gain, y, { anchor: 'end' }));
-    if (r.ret) parts.push(svgText(r.ret, F.table.ret, y, { anchor: 'end' }));
-  });
-
-  decompteMonetaire(netArrondi).forEach((count, i) => {
-    if (count > 0) parts.push(svgBox(String(count), F.dec.xs[i] - 10, F.dec.y, 20));
-  });
-
-  parts.push(svgText(formatMontant(totalGains), F.totalGain.x + F.totalGain.w, F.totalGain.y, { anchor: 'end' }));
-  parts.push(svgText(formatMontant(totalRetenues), F.totalRet.x + F.totalRet.w, F.totalRet.y, { anchor: 'end' }));
-  parts.push(svgBox(formatMontant(netArrondi), F.net.x, F.net.y, F.net.w, 14));
-
-  if (cumuls) {
-    const vals = [
-      formatJours(cumuls.joursIr),
-      formatMontant(cumuls.cumulBaseImposable),
-      formatMontant(cumuls.cumulRetenues),
-      formatMontant(cumuls.cumulDeductions),
-      cumuls.cumulRetenuesIr > 0 ? formatMontant(cumuls.cumulRetenuesIr) : '',
-    ];
-    vals.forEach((v, i) => {
-      if (v) parts.push(svgBox(v, F.cumuls.xs[i], F.cumuls.y, F.cumuls.ws[i]));
+    rows.push({
+      code: '020',
+      lib: 'PRIMES DIVERSES',
+      gain: formatMontant(Number(bulletin.primes)),
     });
   }
 
-  const svg = `<svg width="${IMG_W}" height="${IMG_H}" xmlns="http://www.w3.org/2000/svg">${parts.join('')}</svg>`;
-  const composed = await sharp(TEMPLATE_FORM)
-    .composite([{ input: Buffer.from(svg), top: 0, left: 0 }])
-    .png()
-    .toBuffer();
+  rows.push({
+    code: '499',
+    lib: 'TOTAL SALAIRE BRUT',
+    base: formatMontant(brut),
+    gain: formatMontant(brut),
+    isBold: true,
+    isSubtotal: true,
+  });
 
-  const pdfDoc = await PDFDocument.create();
-  const page = pdfDoc.addPage([PAGE_W, PAGE_H]);
-  const png = await pdfDoc.embedPng(composed);
-  page.drawImage(png, { x: 0, y: 0, width: PAGE_W, height: PAGE_H });
-  fs.writeFileSync(outputPath, await pdfDoc.save());
+  rows.push({
+    code: '550',
+    lib: 'COTISATION C.N.S.S.',
+    base: formatMontant(brut),
+    taux: '4,480 %',
+    ret: formatMontant(cnss),
+  });
+
+  rows.push({
+    code: '552',
+    lib: 'COTISATION A.M.O.',
+    base: formatMontant(brut),
+    taux: '2,260 %',
+    ret: formatMontant(amo),
+  });
+
+  rows.push({
+    code: '560',
+    lib: 'IMPOT SUR LE REVENU (I.R.)',
+    base: formatMontant(baseIr),
+    ret: ir > 0 ? formatMontant(ir) : '0,00',
+  });
+
+  rows.push({
+    code: '654',
+    lib: 'INDEMNITE DE TRANSPORT URBAIN',
+    gain: formatMontant(transport),
+  });
+
+  if (gainArrondis !== 0) {
+    rows.push({
+      code: '997',
+      lib: 'ARRONDIS (GAIN)',
+      gain: formatMontantSigned(gainArrondis),
+    });
+  }
+
+  if (retArrondis > 0) {
+    rows.push({
+      code: '997',
+      lib: 'ARRONDIS (RETENUE)',
+      ret: formatMontant(retArrondis),
+    });
+  }
+
+  // PDF Generation using PDFKit
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({
+      size: 'A4',
+      margin: 35,
+      info: {
+        Title: `Bulletin de Paie - ${employe.nom || ''} ${employe.prenom || ''} - ${bulletin.mois}.${bulletin.annee}`,
+        Author: nomSociete,
+      },
+    });
+
+    const stream = fs.createWriteStream(outputPath);
+    doc.pipe(stream);
+
+    const margin = 35;
+    const topMargin = 75; // Increased top spacing for vertical elegance
+    const pageW = 595.28;
+    const contentW = pageW - margin * 2; // 525.28
+
+    // Colors
+    const primaryColor = '#0F172A'; // Dark Navy Slate
+    const accentColor = '#1E3A8A'; // Royal Blue
+    const lightBg = '#F8FAFC'; // Soft Light Blue-Grey
+    const borderGray = '#CBD5E1'; // Slate Border
+    const headerBg = '#1E293B'; // Header Dark Background
+    const textDark = '#0F172A'; // Text
+    const textMuted = '#475569'; // Secondary text
+
+    // 1. TOP HEADER BANNER (Larger height & top margin)
+    const headerH = 80;
+    doc.rect(margin, topMargin, contentW, headerH).fill(headerBg);
+
+    // Enlarged LOGO area on the left
+    const logoW = 140;
+    const logoH = 64;
+    const logoX = margin + 10;
+    const logoY = topMargin + (headerH - logoH) / 2;
+
+    const logoCandidates = [
+      path.join(process.cwd(), 'assets', 'logo-oxyral.png'),
+      path.join(process.cwd(), 'assets', 'logo-oxyral-hd.png'),
+      path.join(process.cwd(), 'backend', 'assets', 'logo-oxyral.png'),
+      path.join(process.cwd(), 'backend', 'assets', 'logo-oxyral-hd.png'),
+      path.join(process.cwd(), 'assets', 'logo.png'),
+    ];
+    const foundLogo = logoCandidates.find((p) => fs.existsSync(p));
+
+    if (foundLogo) {
+      try {
+        doc.image(foundLogo, logoX, logoY, {
+          fit: [logoW, logoH],
+          align: 'left',
+          valign: 'center',
+        });
+      } catch (err) {
+        console.error('Failed to embed logo image:', err);
+      }
+    }
+
+    // Centered Title & Header Information (allowing ample room for enlarged logo)
+    const headerTextX = margin + logoW + 15;
+    const headerTextW = contentW - (logoW + 25);
+
+    const moisNoms = [
+      'JANVIER',
+      'FÉVRIER',
+      'MARS',
+      'AVRIL',
+      'MAI',
+      'JUIN',
+      'JUILLET',
+      'AOÛT',
+      'SEPTEMBRE',
+      'OCTOBRE',
+      'NOVEMBRE',
+      'DÉCEMBRE',
+    ];
+    const moisNom = moisNoms[(bulletin.mois || 1) - 1] || '';
+
+    // Title centered
+    doc
+      .fillColor('#FFFFFF')
+      .font('Helvetica-Bold')
+      .fontSize(19)
+      .text('BULLETIN DE PAIE', headerTextX, topMargin + 13, {
+        width: headerTextW,
+        align: 'center',
+      });
+
+    // Subtitle / Period centered
+    doc
+      .fontSize(11)
+      .font('Helvetica-Bold')
+      .fillColor('#E2E8F0')
+      .text(`PÉRIODE : ${moisNom} ${bulletin.annee}`, headerTextX, topMargin + 37, {
+        width: headerTextW,
+        align: 'center',
+      });
+
+    // Company meta line centered
+    doc
+      .fontSize(8.5)
+      .font('Helvetica')
+      .fillColor('#94A3B8')
+      .text(
+        `Société : ${nomSociete}   -   N° CNSS : ${cnssSociete}   -   Date de paie : ${datePaie}`,
+        headerTextX,
+        topMargin + 57,
+        {
+          width: headerTextW,
+          align: 'center',
+        },
+      );
+
+    // 2. SALARY & EMPLOYEE INFORMATION BOX
+    let curY = topMargin + headerH + 12;
+
+    // Box Header
+    doc.rect(margin, curY, contentW, 20).fill('#E2E8F0');
+    doc
+      .fillColor(primaryColor)
+      .font('Helvetica-Bold')
+      .fontSize(9)
+      .text('INFORMATIONS SALARIÉ & EMPLOI', margin + 10, curY + 5);
+
+    curY += 20;
+    const cardHeight = 85;
+
+    // Outer border for card
+    doc
+      .rect(margin, curY, contentW, cardHeight)
+      .fillAndStroke(lightBg, borderGray);
+
+    // Split into 2 columns
+    const colW = contentW / 2;
+
+    // Vertical separator
+    doc
+      .moveTo(margin + colW, curY)
+      .lineTo(margin + colW, curY + cardHeight)
+      .strokeColor(borderGray)
+      .stroke();
+
+    // Column 1 Content
+    doc.fillColor(textDark).fontSize(9);
+    let lY = curY + 8;
+    const lineStep = 15;
+
+    const printField = (
+      x: number,
+      y: number,
+      label: string,
+      val: string,
+      w = 240,
+    ) => {
+      doc
+        .font('Helvetica-Bold')
+        .fillColor(textMuted)
+        .text(label, x, y, { width: 100, continued: false });
+      doc
+        .font('Helvetica-Bold')
+        .fillColor(textDark)
+        .text(`:  ${val}`, x + 95, y, { width: w - 95 });
+    };
+
+    printField(margin + 10, lY, 'Matricule', matricule(employe.id || 0));
+    lY += lineStep;
+    printField(
+      margin + 10,
+      lY,
+      'Nom & Prénom',
+      `${employe.nom || ''} ${employe.prenom || ''}`.toUpperCase(),
+    );
+    lY += lineStep;
+    printField(margin + 10, lY, 'C.I.N.', employe.cin || '-');
+    lY += lineStep;
+    printField(margin + 10, lY, 'N° C.N.S.S.', employe.cnss || '-');
+    lY += lineStep;
+    printField(
+      margin + 10,
+      lY,
+      'Sit. Fam. - Enf.',
+      `${sitFam} (${nbEnfants} enfant(s))`,
+    );
+
+    // Column 2 Content
+    lY = curY + 8;
+    const xCol2 = margin + colW + 10;
+    printField(
+      xCol2,
+      lY,
+      'Fonction',
+      (employe.fonction || 'EMPLOYE').toUpperCase(),
+    );
+    lY += lineStep;
+    printField(
+      xCol2,
+      lY,
+      'Date embauche',
+      employe.dateEmbauche ? formatDateDot(new Date(employe.dateEmbauche)) : '-',
+    );
+    lY += lineStep;
+    printField(
+      xCol2,
+      lY,
+      'Période (du - au)',
+      `${formatDateDot(debut)} au ${formatDateDot(fin)}`,
+    );
+    lY += lineStep;
+    printField(
+      xCol2,
+      lY,
+      'Jours travaillés',
+      `${formatJours(Number(bulletin.nombreJours || 26))} jours`,
+    );
+    lY += lineStep;
+    printField(xCol2, lY, 'N° C.I.M.R.', employe.cimr || '-');
+
+    curY += cardHeight + 12;
+
+    // 3. MAIN TABLE OF SALARY COMPONENTS
+    const tableHeaderHeight = 22;
+    const colCodeW = 45;
+    const colLibW = 185;
+    const colBaseW = 75;
+    const colTauxW = 60;
+    const colGainW = 80;
+    const colRetW = 80;
+
+    const xCode = margin;
+    const xLib = xCode + colCodeW;
+    const xBase = xLib + colLibW;
+    const xTaux = xBase + colBaseW;
+    const xGain = xTaux + colTauxW;
+    const xRet = xGain + colGainW;
+
+    // Header row background
+    doc.rect(margin, curY, contentW, tableHeaderHeight).fill(accentColor);
+
+    doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(8.5);
+
+    doc.text('CODE', xCode + 4, curY + 6, {
+      width: colCodeW - 8,
+      align: 'center',
+    });
+    doc.text('RUBRIQUE / LIBELLÉ', xLib + 6, curY + 6, { width: colLibW - 12 });
+    doc.text('BASE', xBase + 4, curY + 6, {
+      width: colBaseW - 8,
+      align: 'right',
+    });
+    doc.text('TAUX', xTaux + 4, curY + 6, {
+      width: colTauxW - 8,
+      align: 'right',
+    });
+    doc.text('GAINS (DH)', xGain + 4, curY + 6, {
+      width: colGainW - 8,
+      align: 'right',
+    });
+    doc.text('RETENUES (DH)', xRet + 4, curY + 6, {
+      width: colRetW - 8,
+      align: 'right',
+    });
+
+    curY += tableHeaderHeight;
+
+    const rowHeight = 19;
+    const minRowsHeight = 209; // Adjusted height for perfect page fit
+    let renderedRowsHeight = 0;
+
+    rows.forEach((r, idx) => {
+      const isEven = idx % 2 === 0;
+      const bg = r.isSubtotal ? '#E2E8F0' : isEven ? '#FFFFFF' : '#F8FAFC';
+
+      doc.rect(margin, curY, contentW, rowHeight).fill(bg);
+      doc
+        .rect(margin, curY, contentW, rowHeight)
+        .strokeColor('#E2E8F0')
+        .stroke();
+
+      doc
+        .fillColor(r.isBold ? primaryColor : textDark)
+        .font(r.isBold ? 'Helvetica-Bold' : 'Helvetica')
+        .fontSize(8.5);
+
+      doc.text(r.code, xCode + 4, curY + 5, {
+        width: colCodeW - 8,
+        align: 'center',
+      });
+      doc.text(r.lib, xLib + 6, curY + 5, { width: colLibW - 12 });
+      if (r.base)
+        doc.text(r.base, xBase + 4, curY + 5, {
+          width: colBaseW - 8,
+          align: 'right',
+        });
+      if (r.taux)
+        doc.text(r.taux, xTaux + 4, curY + 5, {
+          width: colTauxW - 8,
+          align: 'right',
+        });
+      if (r.gain)
+        doc.text(r.gain, xGain + 4, curY + 5, {
+          width: colGainW - 8,
+          align: 'right',
+        });
+      if (r.ret)
+        doc.text(r.ret, xRet + 4, curY + 5, {
+          width: colRetW - 8,
+          align: 'right',
+        });
+
+      curY += rowHeight;
+      renderedRowsHeight += rowHeight;
+    });
+
+    // Fill remaining table vertical space with blank rows if needed for visual elegance
+    while (renderedRowsHeight < minRowsHeight) {
+      const isEven =
+        (rows.length + Math.floor(renderedRowsHeight / rowHeight)) % 2 === 0;
+      const bg = isEven ? '#FFFFFF' : '#F8FAFC';
+
+      doc.rect(margin, curY, contentW, rowHeight).fill(bg);
+      doc
+        .rect(margin, curY, contentW, rowHeight)
+        .strokeColor('#F1F5F9')
+        .stroke();
+
+      curY += rowHeight;
+      renderedRowsHeight += rowHeight;
+    }
+
+    // Outer table vertical grid lines
+    doc
+      .rect(
+        margin,
+        curY - renderedRowsHeight - tableHeaderHeight,
+        contentW,
+        renderedRowsHeight + tableHeaderHeight,
+      )
+      .strokeColor(borderGray)
+      .stroke();
+
+    curY += 10;
+
+    // 4. TOTALS & NET SALARY SUMMARY
+    const summaryH = 75;
+    doc
+      .rect(margin, curY, contentW, summaryH)
+      .fillAndStroke('#FFFFFF', borderGray);
+
+    // Left Totals (Total Gains & Total Retenues)
+    const leftW = 270;
+    doc.fillColor(textDark).fontSize(9);
+
+    // Row 1: Total Gains
+    doc.rect(margin + 10, curY + 10, leftW - 20, 22).fill('#F1F5F9');
+    doc
+      .font('Helvetica-Bold')
+      .fillColor(textMuted)
+      .text('TOTAL GAINS BRUTS', margin + 18, curY + 16);
+    doc
+      .font('Helvetica-Bold')
+      .fillColor('#16A34A')
+      .text(`${formatMontant(totalGains)} DH`, margin + 150, curY + 16, {
+        width: leftW - 165,
+        align: 'right',
+      });
+
+    // Row 2: Total Retenues
+    doc.rect(margin + 10, curY + 38, leftW - 20, 22).fill('#F1F5F9');
+    doc
+      .font('Helvetica-Bold')
+      .fillColor(textMuted)
+      .text('TOTAL RETENUES', margin + 18, curY + 44);
+    doc
+      .font('Helvetica-Bold')
+      .fillColor('#DC2626')
+      .text(`${formatMontant(totalRetenues)} DH`, margin + 150, curY + 44, {
+        width: leftW - 165,
+        align: 'right',
+      });
+
+    // Right Net Box (NET À PAYER)
+    const xNetBox = margin + leftW + 10;
+    const netBoxW = contentW - leftW - 20;
+
+    doc.rect(xNetBox, curY + 10, netBoxW, 50).fill(primaryColor);
+
+    doc
+      .fillColor('#94A3B8')
+      .font('Helvetica-Bold')
+      .fontSize(9)
+      .text('NET À PAYER', xNetBox + 10, curY + 16, {
+        width: netBoxW - 20,
+        align: 'center',
+      });
+
+    doc
+      .fillColor('#FFFFFF')
+      .font('Helvetica-Bold')
+      .fontSize(16)
+      .text(`${formatMontant(netArrondi)} DH`, xNetBox + 10, curY + 33, {
+        width: netBoxW - 20,
+        align: 'center',
+      });
+
+    curY += summaryH + 10;
+
+    // 5. MONTANT EN LETTRES BOX
+    const netEnLettres = montantEnLettresDirhams(netArrondi);
+    doc.rect(margin, curY, contentW, 26).fillAndStroke('#F8FAFC', borderGray);
+
+    doc
+      .fillColor(textMuted)
+      .font('Helvetica-Oblique')
+      .fontSize(8.5)
+      .text(
+        'Arrêté le présent bulletin de paie à la somme de :',
+        margin + 10,
+        curY + 7,
+      );
+
+    doc
+      .fillColor(primaryColor)
+      .font('Helvetica-Bold')
+      .fontSize(8.5)
+      .text(netEnLettres, margin + 215, curY + 7, { width: contentW - 225 });
+
+    curY += 34;
+
+    // 6. CUMULS TABLE
+    if (cumuls) {
+      doc
+        .font('Helvetica-Bold')
+        .fillColor(primaryColor)
+        .fontSize(8.5)
+        .text(`CUMULS DE L'ANNÉE ${bulletin.annee}`, margin, curY);
+
+      curY += 12;
+
+      const cumHHeight = 18;
+      const cumW = contentW / 5;
+
+      doc.rect(margin, curY, contentW, cumHHeight).fill('#334155');
+      doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(7.5);
+
+      const cumHeaders = [
+        'JOURS IR',
+        'CUMUL BRUT IMP.',
+        'CUMUL RETENUES',
+        'CUMUL DÉDUCTIONS',
+        'CUMUL I.R.',
+      ];
+
+      cumHeaders.forEach((h, i) => {
+        doc.text(h, margin + i * cumW, curY + 5, {
+          width: cumW,
+          align: 'center',
+        });
+      });
+
+      curY += cumHHeight;
+
+      doc
+        .rect(margin, curY, contentW, 18)
+        .fillAndStroke('#FFFFFF', borderGray);
+      doc.fillColor(textDark).font('Helvetica').fontSize(8);
+
+      const cumVals = [
+        formatJours(cumuls.joursIr),
+        formatMontant(cumuls.cumulBaseImposable),
+        formatMontant(cumuls.cumulRetenues),
+        formatMontant(cumuls.cumulDeductions),
+        cumuls.cumulRetenuesIr > 0
+          ? formatMontant(cumuls.cumulRetenuesIr)
+          : '0,00',
+      ];
+
+      cumVals.forEach((v, i) => {
+        doc.text(v, margin + i * cumW, curY + 5, {
+          width: cumW,
+          align: 'center',
+        });
+      });
+
+      curY += 26;
+    } else {
+      curY += 10;
+    }
+
+    // 7. SIGNATURES BLOCK
+    const sigBoxH = 60;
+    const sigW = (contentW - 20) / 2;
+
+    // Left Signature: Employeur
+    doc.rect(margin, curY, sigW, sigBoxH).fillAndStroke('#FFFFFF', borderGray);
+    doc
+      .fillColor(textMuted)
+      .font('Helvetica-Bold')
+      .fontSize(8.5)
+      .text("Signature & Cachet de l'Employeur", margin + 10, curY + 8);
+
+    // Right Signature: Salarié
+    doc
+      .rect(margin + sigW + 20, curY, sigW, sigBoxH)
+      .fillAndStroke('#FFFFFF', borderGray);
+    doc
+      .fillColor(textMuted)
+      .font('Helvetica-Bold')
+      .fontSize(8.5)
+      .text('Émargement du Salarié', margin + sigW + 30, curY + 8);
+
+    // Finalize PDF document
+    doc.end();
+
+    stream.on('finish', () => resolve());
+    stream.on('error', (err) => reject(err));
+  });
 }

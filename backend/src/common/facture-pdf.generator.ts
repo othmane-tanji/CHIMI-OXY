@@ -103,6 +103,44 @@ const F_CHIMIRAL = {
   montantLettres: { x: 515, y: 1246, w: 480 },
 };
 
+/**
+ * Coordonnées calibrées sur bon-livraison-template.png (1086×1448 px) - OXYRAL
+ */
+const F_BL_OXYRAL = {
+  date: { x: 555, y: 182 },
+  numero: { x: 825, y: 182 },
+  telephone: { x: 200, y: 415 },
+  mail: { x: 150, y: 449 },
+  client: {
+    x: 540,
+    w: 480,
+    yNom: 314,
+    yAdr1: 352,
+    yVille: 379,
+    xIce: 600,
+    wIce: 300,
+    yIce: 418,
+  },
+  codeClient: { x: 58, y: 584, w: 199 },
+  bonCommande: { x: 257, y: 584, w: 232 },
+  numeroAttach: { x: 489, y: 584, w: 242 },
+  conditionPaiement: { x: 731, y: 584, w: 297 },
+  table: {
+    y0: 688,
+    step: 38,
+    maxRows: 10,
+    designation: { x: 210, w: 450 },
+    qte: { x: 678, w: 170 },
+    puHt: { x: 848, w: 180 },
+    montantHt: { x: 0, w: 0 },
+  },
+  totalHorsTaxe: { x: 0, y: 1253, w: 0 },
+  totalHt: { x: 0, y: 0, w: 0 },
+  totalTva: { x: 0, y: 0, w: 0 },
+  totalTtc: { x: 0, y: 0, w: 0 },
+  montantLettres: { x: 0, y: 0, w: 0 },
+};
+
 export interface FacturePdfData {
   numeroFacture: string;
   dateFacture: Date | string;
@@ -122,6 +160,7 @@ export interface FacturePdfData {
   montantEnLettres: string;
   societe?: string;
   chantier?: string | null;
+  isBl?: boolean;
 }
 
 function esc(text: string): string {
@@ -247,8 +286,11 @@ export async function generateFactureVentePdf(
   data: FacturePdfData,
   outputPath: string,
  ): Promise<void> {
-  const F = data.societe === 'CHIMIRAL' ? F_CHIMIRAL : F_OXYRAL;
-  const templateName = data.societe === 'CHIMIRAL' ? 'facture-template-chimiral.png' : 'facture-template.png';
+  const isOxyralBl = data.isBl && data.societe === 'OXYRAL';
+  const F = isOxyralBl ? F_BL_OXYRAL : (data.societe === 'CHIMIRAL' ? F_CHIMIRAL : F_OXYRAL);
+  const templateName = isOxyralBl
+    ? 'bon-livraison-template.png'
+    : (data.societe === 'CHIMIRAL' ? 'facture-template-chimiral.png' : 'facture-template.png');
   const templatePath = path.join(process.cwd(), 'assets', templateName);
   if (!fs.existsSync(templatePath)) {
     throw new Error(
@@ -263,6 +305,22 @@ export async function generateFactureVentePdf(
   parts.push(svgText(formatDateFacture(data.dateFacture), F.date.x, F.date.y, { size: 21, weight: 'bold' }));
   parts.push(svgText(data.numeroFacture, F.numero.x, F.numero.y, { size: 21, weight: 'bold' }));
 
+  if (data.isBl) {
+    if (data.societe === 'CHIMIRAL') {
+      parts.push(`<rect x="505" y="45" width="540" height="140" fill="#ffffff" />`);
+      parts.push(svgText('BON DE LIVRAISON', 505, 95, { size: 30, weight: 'bold', anchor: 'middle', width: 540, fill: '#1a1a1a' }));
+      parts.push(`<rect x="494" y="515" width="184" height="30" fill="#ffffff" />`);
+      parts.push(svgText('Mode de livraison', 492, 517, { size: 14, weight: 'bold', anchor: 'middle', width: 188, fill: '#1a1a1a' }));
+      parts.push(`<rect x="829" y="622" width="186" height="43" fill="#ffffff" />`);
+      parts.push(`<rect x="550" y="1025" width="465" height="40" fill="#ffffff" />`);
+      parts.push(`<rect x="50" y="1070" width="980" height="335" fill="#ffffff" />`);
+    } else {
+      // OXYRAL BL uses the dedicated template which has correct header, footer and columns pre-printed,
+      // so no masking rects are needed.
+    }
+  }
+
+
   if (data.telephone) {
     parts.push(svgText(data.telephone, F.telephone.x, F.telephone.y, { size: 19, weight: 'bold' }));
   }
@@ -270,10 +328,9 @@ export async function generateFactureVentePdf(
     parts.push(svgText(data.mail, F.mail.x, F.mail.y, { size: 20, weight: 'bold' }));
   }
 
-  if (data.clientIce) {
-    // Mask pre-printed "ICE :" label first
-    parts.push(`<rect x="545" y="412" width="470" height="28" fill="#ffffff" />`);
-  }
+  // Always mask pre-printed "ICE :" label first (uses 450 for OXYRAL BL to cover the lower label)
+  const yIceMask = isOxyralBl ? 450 : 412;
+  parts.push(`<rect x="545" y="${yIceMask}" width="470" height="28" fill="#ffffff" />`);
 
   // Adjust yNom when address is very long to make space
   let yNom = F.client.yNom - 10;
@@ -375,24 +432,28 @@ export async function generateFactureVentePdf(
     parts.push(
       svgBox(formatMontantFacture(ligne.prixUnitaire), F.table.puHt.x, numY, F.table.puHt.w, 19, 'bold'),
     );
-    parts.push(
-      svgBox(formatMontantFacture(ligne.montantHt), F.table.montantHt.x, numY, F.table.montantHt.w, 19, 'bold'),
-    );
+    if (!data.isBl) {
+      parts.push(
+        svgBox(formatMontantFacture(ligne.montantHt), F.table.montantHt.x, numY, F.table.montantHt.w, 19, 'bold'),
+      );
+    }
 
     rowY += Math.max(F.table.step, descLines.length * 24) + 12;
     if (rowY > F.totalHorsTaxe.y - 25) break;
   }
 
-  parts.push(
-    svgBox(
-      formatMontantFacture(data.totalHt),
-      F.totalHorsTaxe.x,
-      F.totalHorsTaxe.y,
-      F.totalHorsTaxe.w,
-      19,
-      'bold',
-    ),
-  );
+  if (!data.isBl) {
+    parts.push(
+      svgBox(
+        formatMontantFacture(data.totalHt),
+        F.totalHorsTaxe.x,
+        F.totalHorsTaxe.y,
+        F.totalHorsTaxe.w,
+        19,
+        'bold',
+      ),
+    );
+  }
   if (['MARJANE HOLDING S.A.', 'MARJANE HOLDING SA', 'MARJANE HOLDING'].includes(data.clientNom?.trim().toUpperCase()) && data.chantier) {
     parts.push(
       svgText(`Chantier : ${data.chantier}`, 70, F.totalHorsTaxe.y, {
@@ -401,55 +462,57 @@ export async function generateFactureVentePdf(
       }),
     );
   }
-  parts.push(
-    svgBox(formatMontantFacture(data.totalHt), F.totalHt.x, F.totalHt.y, F.totalHt.w, 21, 'bold'),
-  );
-  parts.push(
-    svgBox(formatMontantFacture(data.totalTva), F.totalTva.x, F.totalTva.y, F.totalTva.w, 21, 'bold'),
-  );
-  parts.push(
-    svgBox(formatMontantFacture(data.totalTtc), F.totalTtc.x, F.totalTtc.y, F.totalTtc.w, 21, 'bold'),
-  );
-  const letterLines = wrapText(data.montantEnLettres, 45);
-  if (letterLines.length === 1) {
+  if (!data.isBl) {
     parts.push(
-      svgText(letterLines[0], F.montantLettres.x, F.montantLettres.y, {
-        size: 16,
-        weight: 'bold',
-      }),
-    );
-  } else if (letterLines.length === 2) {
-    parts.push(
-      svgText(letterLines[0], F.montantLettres.x, 1243, {
-        size: 16,
-        weight: 'bold',
-      }),
+      svgBox(formatMontantFacture(data.totalHt), F.totalHt.x, F.totalHt.y, F.totalHt.w, 21, 'bold'),
     );
     parts.push(
-      svgText(letterLines[1], F.montantLettres.x, 1267, {
-        size: 16,
-        weight: 'bold',
-      }),
-    );
-  } else {
-    parts.push(
-      svgText(letterLines[0], F.montantLettres.x, 1222, {
-        size: 16,
-        weight: 'bold',
-      }),
+      svgBox(formatMontantFacture(data.totalTva), F.totalTva.x, F.totalTva.y, F.totalTva.w, 21, 'bold'),
     );
     parts.push(
-      svgText(letterLines[1], F.montantLettres.x, 1242, {
-        size: 16,
-        weight: 'bold',
-      }),
+      svgBox(formatMontantFacture(data.totalTtc), F.totalTtc.x, F.totalTtc.y, F.totalTtc.w, 21, 'bold'),
     );
-    parts.push(
-      svgText(letterLines[2], F.montantLettres.x, 1262, {
-        size: 16,
-        weight: 'bold',
-      }),
-    );
+    const letterLines = wrapText(data.montantEnLettres, 45);
+    if (letterLines.length === 1) {
+      parts.push(
+        svgText(letterLines[0], F.montantLettres.x, F.montantLettres.y, {
+          size: 16,
+          weight: 'bold',
+        }),
+      );
+    } else if (letterLines.length === 2) {
+      parts.push(
+        svgText(letterLines[0], F.montantLettres.x, 1243, {
+          size: 16,
+          weight: 'bold',
+        }),
+      );
+      parts.push(
+        svgText(letterLines[1], F.montantLettres.x, 1267, {
+          size: 16,
+          weight: 'bold',
+        }),
+      );
+    } else {
+      parts.push(
+        svgText(letterLines[0], F.montantLettres.x, 1222, {
+          size: 16,
+          weight: 'bold',
+        }),
+      );
+      parts.push(
+        svgText(letterLines[1], F.montantLettres.x, 1242, {
+          size: 16,
+          weight: 'bold',
+        }),
+      );
+      parts.push(
+        svgText(letterLines[2], F.montantLettres.x, 1262, {
+          size: 16,
+          weight: 'bold',
+        }),
+      );
+    }
   }
 
   const fontStyle = fonts.MontserratRegular
@@ -481,7 +544,14 @@ export async function generateFactureVentePdf(
   const pdfDoc = await PDFDocument.create();
   const page = pdfDoc.addPage([PAGE_W, PAGE_H]);
   const png = await pdfDoc.embedPng(composed);
-  page.drawImage(png, { x: 0, y: 0, width: PAGE_W, height: PAGE_H });
+  const marginX = 15;
+  const marginY = 15;
+  page.drawImage(png, {
+    x: marginX,
+    y: marginY,
+    width: PAGE_W - 2 * marginX,
+    height: PAGE_H - 2 * marginY,
+  });
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(outputPath, await pdfDoc.save());
 }

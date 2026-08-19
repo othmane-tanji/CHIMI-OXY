@@ -2,27 +2,40 @@ export function getMoisAnciennete(
   dateEmbauche: Date,
   reference: Date = new Date(),
 ): number {
+  const dEmbauche = new Date(dateEmbauche);
   let months =
-    (reference.getFullYear() - dateEmbauche.getFullYear()) * 12 +
-    (reference.getMonth() - dateEmbauche.getMonth());
-  if (reference.getDate() < dateEmbauche.getDate()) months--;
+    (reference.getFullYear() - dEmbauche.getFullYear()) * 12 +
+    (reference.getMonth() - dEmbauche.getMonth());
+  if (reference.getDate() < dEmbauche.getDate()) months--;
   return Math.max(0, months);
 }
 
-/** 0j (<6 mois) · 9j/an (≥6 mois et <1 an) · 18j/an (≥1 an) */
+/**
+ * Calcul du droit annuel de congé (Législation Marocaine - Code du Travail) :
+ * - < 6 mois d'ancienneté : 0 jour
+ * - ≥ 6 mois et < 1 an : 9 jours
+ * - ≥ 1 an d'ancienneté : 18 jours de base
+ * - Majoration pour ancienneté : +1.5 jour supplémentaire pour chaque tranche de 5 ans d'ancienneté (ex: ≥5 ans -> 19.5j, ≥10 ans -> 21j)
+ */
 export function getDroitAnnuel(
   dateEmbauche: Date,
   reference: Date = new Date(),
 ): number {
-  if (getMoisAnciennete(dateEmbauche, reference) < 6) return 0;
+  const mois = getMoisAnciennete(dateEmbauche, reference);
+  if (mois < 6) return 0;
+  if (mois < 12) return 9;
 
-  const unAn = new Date(dateEmbauche);
-  unAn.setFullYear(unAn.getFullYear() + 1);
-  return reference >= unAn ? 18 : 9;
+  let droit = 18;
+  const anneesService = Math.floor(mois / 12);
+  if (anneesService >= 5) {
+    const tranches5ans = Math.floor(anneesService / 5);
+    droit += tranches5ans * 1.5;
+  }
+  return droit;
 }
 
 export function isDimanche(date: Date): boolean {
-  return date.getDay() === 0;
+  return new Date(date).getDay() === 0;
 }
 
 export function normaliserDate(date: Date | string): Date {

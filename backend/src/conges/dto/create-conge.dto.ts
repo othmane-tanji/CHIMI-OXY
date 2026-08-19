@@ -11,5 +11,9 @@ export class CreateCongeDto {
 
   @IsOptional()
   @IsString()
+  typeJour?: string; // 'JOURNEE' | 'MATIN' | 'APRES_MIDI'
+
+  @IsOptional()
+  @IsString()
   motif?: string;
 }

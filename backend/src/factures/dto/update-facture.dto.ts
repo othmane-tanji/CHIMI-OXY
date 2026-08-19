@@ -1,5 +1,6 @@
 import {
   IsArray,
+  IsBoolean,
   IsDateString,
   IsNumber,
   IsOptional,
@@ -76,6 +77,10 @@ export class UpdateFactureVenteDto {
   @IsOptional()
   @IsString()
   chantier?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  hasBl?: boolean;
 
   @IsOptional()
   @IsArray()

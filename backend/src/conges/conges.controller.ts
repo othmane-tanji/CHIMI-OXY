@@ -7,8 +7,10 @@ import {
   ParseIntPipe,
   Post,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CongesService } from './conges.service';
 import { CreateCongeDto } from './dto/create-conge.dto';
@@ -42,6 +44,43 @@ export class CongesController {
     return this.congesService.getSoldes(m, a);
   }
 
+  @Get('excel-global')
+  async exportExcelGlobal(
+    @Res() res: Response,
+    @Query('annee') anneeStr?: string,
+  ) {
+    const annee = anneeStr ? parseInt(anneeStr, 10) : new Date().getFullYear();
+    const { filename, buffer } = await this.congesService.exportExcelGlobal(annee);
+
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': buffer.length,
+    });
+
+    res.send(buffer);
+  }
+
+  @Get('excel/:employeId')
+  async exportExcel(
+    @Res() res: Response,
+    @Param('employeId', ParseIntPipe) employeId: number,
+    @Query('annee') anneeStr?: string,
+    @Query('mois') moisStr?: string,
+  ) {
+    const annee = anneeStr ? parseInt(anneeStr, 10) : new Date().getFullYear();
+    const mois = moisStr ? parseInt(moisStr, 10) : undefined;
+    const { filename, buffer } = await this.congesService.exportExcel(employeId, annee, mois);
+
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': buffer.length,
+    });
+
+    res.send(buffer);
+  }
+
   @Get('resume-mensuel/:employeId')
   getResumeMensuel(
     @Param('employeId', ParseIntPipe) employeId: number,
@@ -52,8 +91,12 @@ export class CongesController {
   }
 
   @Get('solde/:employeId')
-  getSolde(@Param('employeId', ParseIntPipe) employeId: number) {
-    return this.congesService.getSolde(employeId);
+  getSolde(
+    @Param('employeId', ParseIntPipe) employeId: number,
+    @Query('annee') annee?: string,
+  ) {
+    const year = annee ? +annee : undefined;
+    return this.congesService.getSolde(employeId, year);
   }
 
   @Post()

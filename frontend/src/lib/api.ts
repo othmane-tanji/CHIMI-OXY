@@ -91,11 +91,45 @@ export const congesApi = {
   },
   getSoldes: (mois: number, annee: number) =>
     api<any>(`/conges/soldes?mois=${mois}&annee=${annee}`),
-  getSolde: (employeId: number) => api<any>(`/conges/solde/${employeId}`),
+  getSolde: (employeId: number, annee?: number) =>
+    api<any>(`/conges/solde/${employeId}${annee ? `?annee=${annee}` : ''}`),
   getResumeMensuel: (employeId: number, annee: number) =>
     api<any>(`/conges/resume-mensuel/${employeId}?annee=${annee}`),
   create: (data: any) => api('/conges', { method: 'POST', body: JSON.stringify(data) }),
   remove: (id: number) => api(`/conges/${id}`, { method: 'DELETE' }),
+  downloadExcel: async (employeId: number, filename: string, annee?: number, mois?: number) => {
+    const token = getToken();
+    const q = new URLSearchParams();
+    if (annee) q.set('annee', String(annee));
+    if (mois) q.set('mois', String(mois));
+    const query = q.toString();
+    const res = await fetch(`${API_URL}/conges/excel/${employeId}${query ? `?${query}` : ''}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error('Téléchargement Excel impossible');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+  downloadGlobalExcel: async (filename: string, annee?: number) => {
+    const token = getToken();
+    const q = annee ? `?annee=${annee}` : '';
+    const res = await fetch(`${API_URL}/conges/excel-global${q}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error('Téléchargement Excel global impossible');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
 };
 
 export const bulletinsApi = {
@@ -183,6 +217,20 @@ export const facturesApi = {
     a.click();
     URL.revokeObjectURL(url);
   },
+  downloadVenteBlPdf: async (id: number, filename: string) => {
+    const token = getToken();
+    const res = await fetch(`${API_URL}/factures/vente/${id}/bl/pdf`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error('Téléchargement PDF du Bon de livraison impossible');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
 };
 
 export const traitesApi = {
@@ -206,4 +254,30 @@ export const traitesApi = {
     api(`/traites/encaissement/${id}`, { method: 'DELETE' }),
   removeDecaissement: (id: number) =>
     api(`/traites/decaissement/${id}`, { method: 'DELETE' }),
+};
+
+export const devisApi = {
+  getAll: () => api<any[]>('/devis'),
+  create: (data: any) => api('/devis', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: number, data: any) => api(`/devis/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  remove: (id: number) => api(`/devis/${id}`, { method: 'DELETE' }),
+  getDownloadUrl: (id: number) => `${API_URL}/devis/${id}/download`,
+};
+
+export const backupApi = {
+  downloadBackup: async () => {
+    const token = getToken();
+    const res = await fetch(`${API_URL}/backup/download`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error('Téléchargement de la sauvegarde impossible');
+    const blob = await res.blob();
+    const today = new Date().toISOString().split('T')[0];
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `beta_erp_sauvegarde_${today}.db`;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
 };

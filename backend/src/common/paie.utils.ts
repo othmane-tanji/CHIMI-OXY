@@ -113,22 +113,19 @@ export function calculerBulletin(input: CalculBulletinInput): CalculBulletinResu
 }
 
 export function formatMontant(n: number): string {
-  return n.toLocaleString('fr-FR', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  const parts = Number(n || 0).toFixed(2).split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  return parts.join(',');
 }
 
 export function formatTaux(n: number): string {
-  return n.toLocaleString('fr-FR', {
-    minimumFractionDigits: 3,
-    maximumFractionDigits: 3,
-  });
+  const parts = Number(n || 0).toFixed(3).split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  return parts.join(',');
 }
 
 export function formatJours(n: number): string {
-  return n.toLocaleString('fr-FR', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  const parts = Number(n || 0).toFixed(2).split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  return parts.join(',');
 }

@@ -37,6 +37,7 @@ const emptyVenteForm = (isChimiral = false) => {
     lignes: [emptyLigne()],
     sequenceConfig: '',
     chantier: '',
+    hasBl: false,
   };
 };
 
@@ -62,7 +63,14 @@ export default function FacturesPage() {
   const [formVente, setFormVente] = useState(() => emptyVenteForm(false));
   const [lastFactureNum, setLastFactureNum] = useState('');
 
-  const isVente = tab.startsWith('vente');
+  const isVente = tab.startsWith('vente') || tab.startsWith('bl');
+
+  const filteredFactures = useMemo(() => {
+    if (tab.startsWith('bl')) {
+      return factures.filter((f) => f.hasBl);
+    }
+    return factures;
+  }, [factures, tab]);
 
   const totaux = useMemo(
     () => calculerTotaux(formVente.lignes),
@@ -192,6 +200,7 @@ export default function FacturesPage() {
             }))
           : [emptyLigne()],
         sequenceConfig: full.numeroFacture.split('/')[1] || '',
+        hasBl: full.hasBl ?? false,
       });
       setMontantLettres(full.montantEnLettres || '');
     }
@@ -275,6 +284,7 @@ export default function FacturesPage() {
         chantier: formVente.chantier || undefined,
         lignes,
         societe,
+        hasBl: formVente.hasBl,
       };
       let saved;
       if (editId) saved = await facturesApi.updateVente(editId, payload);
@@ -296,10 +306,17 @@ export default function FacturesPage() {
 
   const handleDownload = async (f: any) => {
     const societeName = (f.societe || 'oxyral').toLowerCase();
-    await facturesApi.downloadVentePdf(
-      f.id,
-      `facture-${societeName}-${f.numeroFacture.replace(/\//g, '-')}.pdf`,
-    );
+    if (tab.startsWith('bl')) {
+      await facturesApi.downloadVenteBlPdf(
+        f.id,
+        `bon-livraison-${societeName}-${f.numeroFacture.replace(/\//g, '-')}.pdf`,
+      );
+    } else {
+      await facturesApi.downloadVentePdf(
+        f.id,
+        `facture-${societeName}-${f.numeroFacture.replace(/\//g, '-')}.pdf`,
+      );
+    }
   };
 
   const handleDelete = async (id: number) => {
@@ -331,7 +348,7 @@ export default function FacturesPage() {
         }
       />
 
-      <div className="mb-4 flex gap-2">
+      <div className="mb-4 flex flex-wrap gap-2">
         <button
           onClick={() => setTab('achat')}
           className={`rounded-lg px-4 py-2 text-sm font-medium ${tab === 'achat' ? 'bg-brand-600 text-white' : 'btn-secondary'}`}
@@ -371,16 +388,17 @@ export default function FacturesPage() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-gray-200 dark:border-gray-800">
-              <th className="table-th">N° Facture</th>
+              <th className="table-th">{tab.startsWith('bl') ? 'N° Bon de Livraison' : 'N° Facture'}</th>
               <th className="table-th">{isVente ? 'Client' : 'Fournisseur'}</th>
               <th className="table-th">Date</th>
-              <th className="table-th">{isVente ? 'Total TTC' : 'Montant'}</th>
+              {!tab.startsWith('bl') && <th className="table-th">{isVente ? 'Total TTC' : 'Montant'}</th>}
+              {tab.startsWith('bl') && <th className="table-th">Mode de livraison</th>}
               <th className="table-th">PDF</th>
               <th className="table-th">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {factures.map((f) => (
+            {filteredFactures.map((f) => (
               <tr key={f.id} className="border-b border-gray-100 dark:border-gray-800">
                 <td className="table-td font-medium">{f.numeroFacture}</td>
                 <td className="table-td">
@@ -389,11 +407,18 @@ export default function FacturesPage() {
                     : f.clientNom || f.client?.nomClient}
                 </td>
                 <td className="table-td">{formatDate(f.dateFacture)}</td>
-                <td className="table-td font-semibold">
-                  {formatMoney(isVente ? f.totalTtc || f.montant : f.montant)}
-                </td>
+                {!tab.startsWith('bl') && (
+                  <td className="table-td font-semibold">
+                    {formatMoney(isVente ? f.totalTtc || f.montant : f.montant)}
+                  </td>
+                )}
+                {tab.startsWith('bl') && (
+                  <td className="table-td font-medium">
+                    {f.numeroAttach || '-'}
+                  </td>
+                )}
                 <td className="table-td">
-                  {f.pdfPath ? (
+                  {(tab.startsWith('bl') ? f.pdfPathBl : f.pdfPath) ? (
                     isVente ? (
                       <button
                         onClick={() => handleDownload(f)}
@@ -572,7 +597,7 @@ export default function FacturesPage() {
               <input className="input" value={formVente.bonCommande} onChange={(e) => setFormVente({ ...formVente, bonCommande: e.target.value })} />
             </div>
             <div>
-              <label className="label">N° Attach.</label>
+              <label className="label">N° Attach. / Mode de livraison</label>
               <input className="input" value={formVente.numeroAttach} onChange={(e) => setFormVente({ ...formVente, numeroAttach: e.target.value })} />
             </div>
             <div>
@@ -588,6 +613,19 @@ export default function FacturesPage() {
                 <option value="VIREMENT">VIREMENT</option>
               </select>
             </div>
+          </div>
+
+          <div className="flex items-center gap-2 rounded-lg bg-gray-50 p-3 dark:bg-gray-800">
+            <input
+              type="checkbox"
+              id="hasBl"
+              className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
+              checked={formVente.hasBl}
+              onChange={(e) => setFormVente({ ...formVente, hasBl: e.target.checked })}
+            />
+            <label htmlFor="hasBl" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer select-none">
+              Créer également un Bon de Livraison associé
+            </label>
           </div>
 
           <div>
@@ -727,13 +765,27 @@ export default function FacturesPage() {
             {detailModal.montantEnLettres && (
               <p className="italic">{detailModal.montantEnLettres}</p>
             )}
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
               <button
                 onClick={() => handleDownload(detailModal)}
                 className="btn-primary flex items-center gap-2"
               >
                 <FileDown size={16} /> Télécharger PDF
               </button>
+              {detailModal.hasBl && (
+                <button
+                  onClick={async () => {
+                    const societeName = (detailModal.societe || 'oxyral').toLowerCase();
+                    await facturesApi.downloadVenteBlPdf(
+                      detailModal.id,
+                      `bon-livraison-${societeName}-${detailModal.numeroFacture.replace(/\//g, '-')}.pdf`,
+                    );
+                  }}
+                  className="btn-secondary flex items-center gap-2"
+                >
+                  <FileDown size={16} /> Télécharger Bon de livraison
+                </button>
+              )}
             </div>
           </div>
         )}

@@ -257,6 +257,7 @@ export class FacturesService {
         montantEnLettres: totaux.montantEnLettres,
         societe,
         chantier: dto.chantier,
+        hasBl: dto.hasBl ?? false,
         lignes: {
           create: totaux.lignes.map((l, i) => ({
             designation: l.designation,
@@ -270,10 +271,14 @@ export class FacturesService {
       include: this.venteInclude,
     });
 
-    const pdfPath = await this.generateFactureVentePdfFile(facture);
+    const pdfPath = await this.generateFactureVentePdfFile(facture, false);
+    let pdfPathBl: string | null = null;
+    if (facture.hasBl) {
+      pdfPathBl = await this.generateFactureVentePdfFile(facture, true);
+    }
     return this.prisma.factureVente.update({
       where: { id: facture.id },
-      data: { pdfPath },
+      data: { pdfPath, pdfPathBl },
       include: this.venteInclude,
     });
   }
@@ -319,6 +324,7 @@ export class FacturesService {
         conditionPaiement: dto.conditionPaiement,
         societe: dto.societe,
         chantier: dto.chantier,
+        hasBl: dto.hasBl,
         montant: totaux.totalTtc,
         totalHt: totaux.totalHt,
         totalTva: totaux.totalTva,
@@ -341,10 +347,22 @@ export class FacturesService {
       include: this.venteInclude,
     });
 
-    const pdfPath = await this.generateFactureVentePdfFile(facture);
+    const pdfPath = await this.generateFactureVentePdfFile(facture, false);
+    let pdfPathBl = facture.pdfPathBl;
+    if (facture.hasBl) {
+      pdfPathBl = await this.generateFactureVentePdfFile(facture, true);
+    } else {
+      if (pdfPathBl) {
+        const oldFile = this.getPdfAbsolutePath(pdfPathBl);
+        if (fs.existsSync(oldFile)) {
+          try { fs.unlinkSync(oldFile); } catch (e) { console.error(e); }
+        }
+        pdfPathBl = null;
+      }
+    }
     return this.prisma.factureVente.update({
       where: { id },
-      data: { pdfPath },
+      data: { pdfPath, pdfPathBl },
       include: this.venteInclude,
     });
   }
@@ -361,7 +379,16 @@ export class FacturesService {
 
   async regenerateVentePdf(id: number): Promise<string> {
     const facture = await this.findOneVente(id);
-    return this.generateFactureVentePdfFile(facture);
+    const pdfPath = await this.generateFactureVentePdfFile(facture, false);
+    let pdfPathBl = facture.pdfPathBl;
+    if (facture.hasBl) {
+      pdfPathBl = await this.generateFactureVentePdfFile(facture, true);
+    }
+    await this.prisma.factureVente.update({
+      where: { id },
+      data: { pdfPath, pdfPathBl },
+    });
+    return pdfPath;
   }
 
   private toPdfData(facture: any) {
@@ -392,13 +419,14 @@ export class FacturesService {
     };
   }
 
-  private async generateFactureVentePdfFile(facture: any): Promise<string> {
+  private async generateFactureVentePdfFile(facture: any, isBl = false): Promise<string> {
     const dir = path.join(process.cwd(), 'storage', 'pdfs', 'factures', 'vente');
     fs.mkdirSync(dir, { recursive: true });
     const societeName = (facture.societe || 'oxyral').toLowerCase();
-    const filename = `facture-${societeName}-${facture.numeroFacture.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`;
+    const prefix = isBl ? 'bon-livraison' : 'facture';
+    const filename = `${prefix}-${societeName}-${facture.numeroFacture.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`;
     const fullPath = path.join(dir, filename);
-    await generateFactureVentePdf(this.toPdfData(facture), fullPath);
+    await generateFactureVentePdf({ ...this.toPdfData(facture), isBl }, fullPath);
     return path.relative(process.cwd(), fullPath).replace(/\\/g, '/');
   }
 
