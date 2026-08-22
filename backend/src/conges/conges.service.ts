@@ -32,47 +32,30 @@ export class CongesService {
     annee: number = new Date().getFullYear(),
   ) {
     const dEmbauche = normaliserDate(employe.dateEmbauche);
-    const startYear = dEmbauche.getFullYear();
+    const refDateYear = new Date(annee, 11, 31);
 
-    let reliquatCumule = 0;
-    let soldeInitialTarget = 0;
-    let joursConsommesTarget = 0;
-    let droitTarget = 0;
+    // Droit annuel de l'année (Base 18j + Majoration 1.5j pour chaque tranche de 5 ans d'ancienneté)
+    const soldeInitial = getDroitAnnuel(dEmbauche, refDateYear);
 
-    for (let y = startYear; y <= annee; y++) {
-      const refDateYear = new Date(y, 11, 31);
-      const droitAnnee = getDroitAnnuel(dEmbauche, refDateYear);
+    // Absences de l'année spécifiée uniquement
+    const congesAnnee = employe.conges.filter((c) => {
+      const d = normaliserDate(c.date);
+      return d.getFullYear() === annee;
+    });
 
-      const congesYear = employe.conges.filter((c) => {
-        const d = normaliserDate(c.date);
-        return d.getFullYear() === y;
-      });
+    const joursConsommes = congesAnnee.reduce(
+      (sum, c) => sum + getValeurConge(c.typeJour),
+      0,
+    );
 
-      const prisYear = congesYear.reduce(
-        (sum, c) => sum + getValeurConge(c.typeJour),
-        0,
-      );
-
-      const soldeDisponibleYear = droitAnnee + reliquatCumule;
-      const soldeRestantYear = soldeDisponibleYear - prisYear;
-
-      if (y === annee) {
-        droitTarget = droitAnnee;
-        soldeInitialTarget = soldeDisponibleYear;
-        joursConsommesTarget = prisYear;
-      }
-
-      reliquatCumule = Math.max(0, soldeRestantYear);
-    }
-
-    const soldeRestant = soldeInitialTarget - joursConsommesTarget;
+    const soldeRestant = soldeInitial - joursConsommes;
 
     return {
-      soldeInitial: soldeInitialTarget,
-      droitAnnuelPure: droitTarget,
-      joursConsommes: joursConsommesTarget,
+      soldeInitial,
+      droitAnnuelPure: soldeInitial,
+      joursConsommes,
       soldeRestant,
-      reliquatReporte: soldeInitialTarget - droitTarget,
+      reliquatReporte: 0,
     };
   }
 
