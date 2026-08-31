@@ -21,7 +21,7 @@ export interface BlExcelData {
 }
 
 export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> {
-  const templatePath = path.join(process.cwd(), 'templates', 'BL_TEMPLATE.xlsx');
+  const templatePath = path.join(process.cwd(), 'templates', 'BL_ADNANE.xlsx');
 
   const wb = new ExcelJS.Workbook();
   if (fs.existsSync(templatePath)) {
@@ -35,7 +35,7 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
     targetSheet = wb.worksheets[0] || wb.addWorksheet('BL');
   }
 
-  // Keep only the target sheet
+  // Keep ONLY the target sheet
   const sheetIdToKeep = targetSheet.id;
   const sheetsToRemove = wb.worksheets.filter((w) => w.id !== sheetIdToKeep);
   sheetsToRemove.forEach((w) => wb.removeWorksheet(w.id));
@@ -43,12 +43,13 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
   const cleanNum = (data.numeroBl || '2026-001').replace(/[^a-zA-Z0-9-]/g, '-');
   targetSheet.name = `BL ${cleanNum}`.substring(0, 31);
 
-  // Populate Header Info
+  // Format date
   const dateFormatted = data.dateFacture
     ? new Date(data.dateFacture).toLocaleDateString('fr-FR')
     : new Date().toLocaleDateString('fr-FR');
 
-  targetSheet.getCell('C14').value = `N° : ${data.numeroBl}`;
+  // Populate Header Info
+  targetSheet.getCell('C14').value = `N° : ${data.numeroBl || ''}`;
   targetSheet.getCell('E14').value = `Date : ${dateFormatted}`;
 
   targetSheet.getCell('C16').value = `Client : ${data.clientNom || ''}`;

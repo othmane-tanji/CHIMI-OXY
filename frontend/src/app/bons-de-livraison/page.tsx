@@ -33,11 +33,12 @@ const emptyVenteForm = (isChimiral = false) => {
     codeClient: defaults.codeClient,
     bonCommande: '',
     numeroAttach: '',
-    conditionPaiement: 'CHÈQUE',
+    conditionPaiement: '60 JRs de la réception de facture',
+    modeLivraison: 'Par nos soins',
     lignes: [emptyLigne()],
     sequenceConfig: '',
     chantier: '',
-    hasBl: true, // Always true for Bons de Livraison
+    hasBl: true,
   };
 };
 
@@ -163,7 +164,8 @@ export default function BonsDeLivraisonPage() {
       codeClient: full.codeClient,
       bonCommande: full.bonCommande || '',
       numeroAttach: full.numeroAttach || '',
-      conditionPaiement: full.conditionPaiement || 'CHÈQUE',
+      conditionPaiement: full.conditionPaiement || '60 JRs de la réception de facture',
+      modeLivraison: full.modeLivraison || 'Par nos soins',
       chantier: full.chantier || '',
       lignes: full.lignes?.length
         ? full.lignes.map((l: any) => ({
@@ -240,6 +242,7 @@ export default function BonsDeLivraisonPage() {
         bonCommande: formVente.bonCommande || undefined,
         numeroAttach: formVente.numeroAttach || undefined,
         conditionPaiement: formVente.conditionPaiement || undefined,
+        modeLivraison: formVente.modeLivraison || undefined,
         chantier: formVente.chantier || undefined,
         lignes,
         societe,
@@ -253,11 +256,9 @@ export default function BonsDeLivraisonPage() {
       load();
 
       if (saved?.id) {
-        const societeName = (saved.societe || 'oxyral').toLowerCase();
-        // Automatically download the BL PDF upon creation!
-        await facturesApi.downloadVenteBlPdf(
+        await facturesApi.downloadVenteBlExcel(
           saved.id,
-          `bon-livraison-${societeName}-${saved.numeroFacture.replace(/\//g, '-')}.pdf`,
+          `bon-livraison-${saved.numeroFacture.replace(/\//g, '-')}.xlsx`,
         );
       }
     } catch (err: any) {
@@ -333,7 +334,7 @@ export default function BonsDeLivraisonPage() {
               <th className="table-th">Client</th>
               <th className="table-th">Date</th>
               <th className="table-th">Mode de livraison</th>
-              <th className="table-th">PDF</th>
+              <th className="table-th">Téléchargements</th>
               <th className="table-th">Actions</th>
             </tr>
           </thead>
@@ -346,19 +347,23 @@ export default function BonsDeLivraisonPage() {
                 </td>
                 <td className="table-td">{formatDate(f.dateFacture)}</td>
                 <td className="table-td font-medium">
-                  {f.numeroAttach || '-'}
+                  {f.modeLivraison || f.numeroAttach || 'Par nos soins'}
                 </td>
                 <td className="table-td">
-                  {f.pdfPathBl ? (
+                  <div className="flex flex-wrap items-center gap-2">
                     <button
                       onClick={() => handleDownload(f)}
-                      className="inline-flex items-center gap-1 text-brand-600 hover:underline"
+                      className="inline-flex items-center gap-1 text-brand-600 hover:underline text-xs font-medium"
                     >
                       <FileDown size={14} /> PDF
                     </button>
-                  ) : (
-                    '-'
-                  )}
+                    <button
+                      onClick={() => facturesApi.downloadVenteBlExcel(f.id, `bon-livraison-${f.numeroFacture.replace(/\//g, '-')}.xlsx`)}
+                      className="inline-flex items-center gap-1 rounded bg-emerald-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-700 shadow-sm transition-colors"
+                    >
+                      <FileDown size={14} /> BL Excel
+                    </button>
+                  </div>
                 </td>
                 <td className="table-td">
                   <button onClick={() => openDetail(f)} className="btn-secondary mr-2 text-xs">
@@ -485,25 +490,21 @@ export default function BonsDeLivraisonPage() {
               <input className="input" value={formVente.codeClient} onChange={(e) => setFormVente({ ...formVente, codeClient: e.target.value })} />
             </div>
             <div>
-              <label className="label">Bon Commande</label>
-              <input className="input" value={formVente.bonCommande} onChange={(e) => setFormVente({ ...formVente, bonCommande: e.target.value })} />
+              <label className="label">N° Bon de Commande</label>
+              <input className="input" placeholder="Ex. BC-2026-99" value={formVente.bonCommande} onChange={(e) => setFormVente({ ...formVente, bonCommande: e.target.value })} />
             </div>
             <div>
-              <label className="label">N° Attach. / Mode de livraison</label>
-              <input className="input" value={formVente.numeroAttach} onChange={(e) => setFormVente({ ...formVente, numeroAttach: e.target.value })} />
+              <label className="label">Mode de livraison</label>
+              <input className="input" placeholder="Par nos soins" value={formVente.modeLivraison} onChange={(e) => setFormVente({ ...formVente, modeLivraison: e.target.value })} />
             </div>
             <div>
               <label className="label">Condition de Paiement</label>
-              <select
+              <input
                 className="input"
+                placeholder="60 JRs de la réception de facture"
                 value={formVente.conditionPaiement}
                 onChange={(e) => setFormVente({ ...formVente, conditionPaiement: e.target.value })}
-              >
-                <option value="CHÈQUE">CHÈQUE</option>
-                <option value="ESPÈCES">ESPÈCES</option>
-                <option value="EFFETS">EFFETS</option>
-                <option value="VIREMENT">VIREMENT</option>
-              </select>
+              />
             </div>
           </div>
 
@@ -633,22 +634,16 @@ export default function BonsDeLivraisonPage() {
             </table>
             <div className="flex justify-end gap-2">
               <button
-                onClick={() => handleDownload(detailModal)}
-                className="btn-primary flex items-center gap-2"
+                onClick={() => facturesApi.downloadVenteBlExcel(detailModal.id, `bon-livraison-${detailModal.numeroFacture.replace(/\//g, '-')}.xlsx`)}
+                className="btn-primary bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-2"
               >
-                <FileDown size={16} /> Télécharger Bon de livraison
+                <FileDown size={16} /> Télécharger BL Excel
               </button>
               <button
-                onClick={async () => {
-                  const societeName = (detailModal.societe || 'oxyral').toLowerCase();
-                  await facturesApi.downloadVentePdf(
-                    detailModal.id,
-                    `facture-${societeName}-${detailModal.numeroFacture.replace(/\//g, '-')}.pdf`,
-                  );
-                }}
+                onClick={() => handleDownload(detailModal)}
                 className="btn-secondary flex items-center gap-2"
               >
-                <FileDown size={16} /> Télécharger Facture
+                <FileDown size={16} /> Télécharger BL PDF
               </button>
             </div>
           </div>
