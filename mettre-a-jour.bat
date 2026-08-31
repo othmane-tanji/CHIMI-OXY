@@ -19,16 +19,23 @@ echo [1/3] Telechargement des mises a jour depuis GitHub...
 git fetch origin main
 git reset --hard origin/main
 
-:: 4. Nettoyage du cache de compilation Next.js
+:: 4. Nettoyage du cache et installation des dependances
 echo.
-echo [2/3] Nettoyage du cache et recompilation de l'application...
+echo [2/3] Verification des modules et recompilation...
 if exist "frontend\.next" rmdir /s /q "frontend\.next"
 if exist "backend\dist" rmdir /s /q "backend\dist"
 
 cd /d "%~dp0backend"
+if not exist "node_modules\nodemailer" (
+  echo Installation du module nodemailer...
+  call npm.cmd install
+)
 call npm.cmd run build
 
 cd /d "%~dp0frontend"
+if not exist "node_modules" (
+  call npm.cmd install
+)
 call npm.cmd run build
 
 :: 5. Redemarrage de l'application
