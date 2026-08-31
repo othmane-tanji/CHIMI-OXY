@@ -25,7 +25,7 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
 
   const sheet = wb.addWorksheet('Bon de Livraison');
 
-  // Configuration d'impression A4 100% sur 1 seule page et centré
+  // Configuration d'impression 100% Pleine Page A4 (sans espace blanc résiduel)
   sheet.pageSetup = {
     paperSize: 9, // Format A4
     orientation: 'portrait',
@@ -33,28 +33,29 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
     fitToWidth: 1,
     fitToHeight: 1,
     horizontalCentered: true,
+    verticalCentered: true,
     margins: {
-      left: 0.3,
-      right: 0.3,
-      top: 0.4,
-      bottom: 0.4,
-      header: 0.2,
-      footer: 0.2,
+      left: 0.25,
+      right: 0.25,
+      top: 0.3,
+      bottom: 0.3,
+      header: 0.1,
+      footer: 0.1,
     },
   };
 
   sheet.views = [{ showGridLines: true }];
 
-  // Largeurs de colonnes optimisées :
-  // Col B (12) : CODE / Code client
-  // Col C (35) : N° BON COMMANDE (réduit) / Désignations
-  // Col D (26) : Conditions de payement (élargi pour lisibilité 100%) / Qté
-  // Col E (20) : Mode de livraison / Prix Unitaire
-  sheet.getColumn('A').width = 3;
-  sheet.getColumn('B').width = 12;
-  sheet.getColumn('C').width = 35;
-  sheet.getColumn('D').width = 26;
-  sheet.getColumn('E').width = 20;
+  // Colonnes équilibrées pour remplir 100% de la largeur A4 :
+  // Col B (15) : CODE / Code client
+  // Col C (48) : Désignations / N° BON COMMANDE
+  // Col D (24) : Conditions de payement / Qté
+  // Col E (24) : Mode de livraison / Prix Unitaire
+  sheet.getColumn('A').width = 2.5;
+  sheet.getColumn('B').width = 15;
+  sheet.getColumn('C').width = 48;
+  sheet.getColumn('D').width = 24;
+  sheet.getColumn('E').width = 24;
 
   const boxBorder = {
     top: { style: 'medium' as const, color: { argb: 'FF9CA3AF' } },
@@ -88,7 +89,7 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
   sheet.mergeCells('D2:E3');
   const blTitleCell = sheet.getCell('D2');
   blTitleCell.value = 'BON DE LIVRAISON';
-  blTitleCell.font = { name: 'Arial', size: 16, bold: true, color: { argb: 'FF1F2937' } };
+  blTitleCell.font = { name: 'Arial', size: 18, bold: true, color: { argb: 'FF1F2937' } };
   blTitleCell.alignment = { horizontal: 'center', vertical: 'middle' };
   blTitleCell.fill = headerFill;
 
@@ -102,7 +103,7 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
     : new Date().toLocaleDateString('fr-FR');
   const dateCell = sheet.getCell('D4');
   dateCell.value = `Date: ${dateFormatted}`;
-  dateCell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF374151' } };
+  dateCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF374151' } };
   dateCell.alignment = { horizontal: 'center', vertical: 'middle' };
   dateCell.border = thinBorder;
   dateCell.fill = softFill;
@@ -110,7 +111,7 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
   // Sub-box N° (E4)
   const numCell = sheet.getCell('E4');
   numCell.value = `N : ${data.numeroBl || ''}`;
-  numCell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF374151' } };
+  numCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF374151' } };
   numCell.alignment = { horizontal: 'center', vertical: 'middle' };
   numCell.border = thinBorder;
   numCell.fill = softFill;
@@ -121,7 +122,7 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
   compCell.value = isChimiral
     ? `CHIMIRAL SARL\n12 Rue Des Hopitaux\nCasablanca\nTéléphone : 05 22 33 29 05\nMail: chimiral@oxyral.ma`
     : `OXYRAL SARL\nZone Industriel TIT MELLIL\nCasablanca\nTéléphone : 0522 332 905\nFax       : 0522 329 062\nMail: oxyral2010@gmail.com`;
-  compCell.font = { name: 'Calibri', size: 10, color: { argb: 'FF1F2937' } };
+  compCell.font = { name: 'Calibri', size: 10.5, color: { argb: 'FF1F2937' } };
   compCell.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true, indent: 1 };
   compCell.fill = softFill;
 
@@ -136,7 +137,7 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
   const clientNom = (data.clientNom || '').toUpperCase();
   const clientIce = data.clientIce ? `ICE: ${data.clientIce}` : '';
   clientCell.value = `${clientNom}\n${clientIce}`;
-  clientCell.font = { name: 'Arial', size: 13, bold: true, color: { argb: 'FF111827' } };
+  clientCell.font = { name: 'Arial', size: 14, bold: true, color: { argb: 'FF111827' } };
   clientCell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
   clientCell.fill = softFill;
 
@@ -146,10 +147,10 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
   }
 
   // 4. CADRES DES 4 MÉTRIQUES (Rows 13 & 15)
-  const headerFont = { name: 'Calibri', size: 9, bold: true, color: { argb: 'FF374151' } };
-  const valFont = { name: 'Calibri', size: 9.5, color: { argb: 'FF111827' } };
+  const headerFont = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF374151' } };
+  const valFont = { name: 'Calibri', size: 10, color: { argb: 'FF111827' } };
 
-  // Code client (B13 & B15)
+  // Code client
   sheet.getCell('B13').value = 'Code client';
   sheet.getCell('B13').font = headerFont;
   sheet.getCell('B13').alignment = { horizontal: 'center', vertical: 'middle' };
@@ -162,7 +163,7 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
   sheet.getCell('B15').border = thinBorder;
   sheet.getCell('B15').fill = softFill;
 
-  // N° BON COMMANDE (C13 & C15 - Réduit)
+  // N° BON COMMANDE
   sheet.getCell('C13').value = 'N° BON COMMANDE';
   sheet.getCell('C13').font = headerFont;
   sheet.getCell('C13').alignment = { horizontal: 'center', vertical: 'middle' };
@@ -175,7 +176,7 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
   sheet.getCell('C15').border = thinBorder;
   sheet.getCell('C15').fill = softFill;
 
-  // Conditions de payement (D13 & D15 - Élargi pour lisibilité 100%!)
+  // Conditions de payement
   sheet.getCell('D13').value = 'Conditions de payement';
   sheet.getCell('D13').font = headerFont;
   sheet.getCell('D13').alignment = { horizontal: 'center', vertical: 'middle' };
@@ -188,7 +189,7 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
   sheet.getCell('D15').border = thinBorder;
   sheet.getCell('D15').fill = softFill;
 
-  // Mode de livraison (E13 & E15)
+  // Mode de livraison
   sheet.getCell('E13').value = 'Mode de livraison';
   sheet.getCell('E13').font = headerFont;
   sheet.getCell('E13').alignment = { horizontal: 'center', vertical: 'middle' };
@@ -201,14 +202,14 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
   sheet.getCell('E15').border = thinBorder;
   sheet.getCell('E15').fill = softFill;
 
-  sheet.getRow(13).height = 20;
-  sheet.getRow(15).height = 24;
+  sheet.getRow(13).height = 22;
+  sheet.getRow(15).height = 26;
 
   // 5. TABLE HEADER (Row 18)
   const thRow = 18;
-  sheet.getRow(thRow).height = 26;
+  sheet.getRow(thRow).height = 28;
 
-  const thFont = { name: 'Arial', size: 10.5, bold: true, color: { argb: 'FF1F2937' } };
+  const thFont = { name: 'Arial', size: 11, bold: true, color: { argb: 'FF1F2937' } };
   const thBorder = {
     top: { style: 'medium' as const, color: { argb: 'FF4B5563' } },
     left: { style: 'thin' as const, color: { argb: 'FF4B5563' } },
@@ -233,15 +234,15 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
     cell.fill = thFill;
   });
 
-  // 6. TABLE BODY (Rows 19 to 32)
+  // 6. TABLE BODY (19 lignes pour remplir 100% de la hauteur verticale A4)
   const lignes = data.lignes || [];
   const startRow = 19;
-  const maxRows = Math.max(lignes.length, 12);
+  const maxRows = Math.max(lignes.length, 19);
 
   for (let i = 0; i < maxRows; i++) {
     const r = startRow + i;
     const item = lignes[i];
-    sheet.getRow(r).height = item?.designation && item.designation.length > 50 ? 34 : 24;
+    sheet.getRow(r).height = item?.designation && item.designation.length > 50 ? 36 : 26;
 
     const cellB = sheet.getCell(`B${r}`);
     const cellC = sheet.getCell(`C${r}`);
@@ -253,10 +254,10 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
     cellD.value = item ? Number(item.quantite) : null;
     cellE.value = item ? Number(item.prixUnitaire) : null;
 
-    cellB.font = { name: 'Calibri', size: 10 };
-    cellC.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF1E3A8A' } };
-    cellD.font = { name: 'Calibri', size: 10.5, bold: true, color: { argb: 'FF1E3A8A' } };
-    cellE.font = { name: 'Calibri', size: 10.5, bold: true, color: { argb: 'FF1E3A8A' } };
+    cellB.font = { name: 'Calibri', size: 10.5 };
+    cellC.font = { name: 'Calibri', size: 10.5, bold: true, color: { argb: 'FF1E3A8A' } };
+    cellD.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF1E3A8A' } };
+    cellE.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF1E3A8A' } };
 
     cellB.alignment = { horizontal: 'center', vertical: 'middle' };
     cellC.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
@@ -277,14 +278,14 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
     cellE.border = rowBorder;
   }
 
-  // 7. CHANTIER FOOTER (Row startRow + maxRows)
+  // 7. CHANTIER FOOTER (Bas de page A4)
   const chantierRow = startRow + maxRows;
-  sheet.getRow(chantierRow).height = 26;
+  sheet.getRow(chantierRow).height = 28;
   sheet.mergeCells(`B${chantierRow}:E${chantierRow}`);
   const chantierCell = sheet.getCell(`B${chantierRow}`);
   const chantierText = data.chantier || data.clientNom;
   chantierCell.value = `Chantier ${chantierText}`;
-  chantierCell.font = { name: 'Calibri', size: 10.5, italic: true, bold: true, color: { argb: 'FF1F2937' } };
+  chantierCell.font = { name: 'Calibri', size: 11, italic: true, bold: true, color: { argb: 'FF1F2937' } };
   chantierCell.alignment = { horizontal: 'left', vertical: 'middle' };
 
   const footerBorder = {
