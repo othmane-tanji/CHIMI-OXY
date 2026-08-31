@@ -25,16 +25,17 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
 
   const sheet = wb.addWorksheet('Bon de Livraison');
 
-  // Configuration d'impression A4 100% sur 1 seule page
+  // Configuration d'impression A4 100% sur 1 seule page et centré
   sheet.pageSetup = {
     paperSize: 9, // Format A4
     orientation: 'portrait',
     fitToPage: true,
     fitToWidth: 1,
     fitToHeight: 1,
+    horizontalCentered: true,
     margins: {
-      left: 0.35,
-      right: 0.35,
+      left: 0.3,
+      right: 0.3,
       top: 0.4,
       bottom: 0.4,
       header: 0.2,
@@ -44,11 +45,15 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
 
   sheet.views = [{ showGridLines: true }];
 
-  // Largeurs de colonnes ajustées pour impression A4 parfaite
-  sheet.getColumn('A').width = 3.5;
-  sheet.getColumn('B').width = 14;
-  sheet.getColumn('C').width = 46;
-  sheet.getColumn('D').width = 16;
+  // Largeurs de colonnes optimisées :
+  // Col B (12) : CODE / Code client
+  // Col C (35) : N° BON COMMANDE (réduit) / Désignations
+  // Col D (26) : Conditions de payement (élargi pour lisibilité 100%) / Qté
+  // Col E (20) : Mode de livraison / Prix Unitaire
+  sheet.getColumn('A').width = 3;
+  sheet.getColumn('B').width = 12;
+  sheet.getColumn('C').width = 35;
+  sheet.getColumn('D').width = 26;
   sheet.getColumn('E').width = 20;
 
   const boxBorder = {
@@ -144,7 +149,7 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
   const headerFont = { name: 'Calibri', size: 9, bold: true, color: { argb: 'FF374151' } };
   const valFont = { name: 'Calibri', size: 9.5, color: { argb: 'FF111827' } };
 
-  // Code client
+  // Code client (B13 & B15)
   sheet.getCell('B13').value = 'Code client';
   sheet.getCell('B13').font = headerFont;
   sheet.getCell('B13').alignment = { horizontal: 'center', vertical: 'middle' };
@@ -157,7 +162,7 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
   sheet.getCell('B15').border = thinBorder;
   sheet.getCell('B15').fill = softFill;
 
-  // N° BON COMMANDE
+  // N° BON COMMANDE (C13 & C15 - Réduit)
   sheet.getCell('C13').value = 'N° BON COMMANDE';
   sheet.getCell('C13').font = headerFont;
   sheet.getCell('C13').alignment = { horizontal: 'center', vertical: 'middle' };
@@ -170,7 +175,7 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
   sheet.getCell('C15').border = thinBorder;
   sheet.getCell('C15').fill = softFill;
 
-  // Conditions de payement
+  // Conditions de payement (D13 & D15 - Élargi pour lisibilité 100%!)
   sheet.getCell('D13').value = 'Conditions de payement';
   sheet.getCell('D13').font = headerFont;
   sheet.getCell('D13').alignment = { horizontal: 'center', vertical: 'middle' };
@@ -179,11 +184,11 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
 
   sheet.getCell('D15').value = data.conditionPaiement || '60 JRs de la réception de facture';
   sheet.getCell('D15').font = valFont;
-  sheet.getCell('D15').alignment = { horizontal: 'center', vertical: 'middle' };
+  sheet.getCell('D15').alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
   sheet.getCell('D15').border = thinBorder;
   sheet.getCell('D15').fill = softFill;
 
-  // Mode de livraison
+  // Mode de livraison (E13 & E15)
   sheet.getCell('E13').value = 'Mode de livraison';
   sheet.getCell('E13').font = headerFont;
   sheet.getCell('E13').alignment = { horizontal: 'center', vertical: 'middle' };
@@ -196,9 +201,12 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
   sheet.getCell('E15').border = thinBorder;
   sheet.getCell('E15').fill = softFill;
 
+  sheet.getRow(13).height = 20;
+  sheet.getRow(15).height = 24;
+
   // 5. TABLE HEADER (Row 18)
   const thRow = 18;
-  sheet.getRow(thRow).height = 24;
+  sheet.getRow(thRow).height = 26;
 
   const thFont = { name: 'Arial', size: 10.5, bold: true, color: { argb: 'FF1F2937' } };
   const thBorder = {
@@ -233,7 +241,7 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
   for (let i = 0; i < maxRows; i++) {
     const r = startRow + i;
     const item = lignes[i];
-    sheet.getRow(r).height = item?.designation && item.designation.length > 50 ? 32 : 22;
+    sheet.getRow(r).height = item?.designation && item.designation.length > 50 ? 34 : 24;
 
     const cellB = sheet.getCell(`B${r}`);
     const cellC = sheet.getCell(`C${r}`);
@@ -247,8 +255,8 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
 
     cellB.font = { name: 'Calibri', size: 10 };
     cellC.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF1E3A8A' } };
-    cellD.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF1E3A8A' } };
-    cellE.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF1E3A8A' } };
+    cellD.font = { name: 'Calibri', size: 10.5, bold: true, color: { argb: 'FF1E3A8A' } };
+    cellE.font = { name: 'Calibri', size: 10.5, bold: true, color: { argb: 'FF1E3A8A' } };
 
     cellB.alignment = { horizontal: 'center', vertical: 'middle' };
     cellC.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
@@ -271,12 +279,12 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
 
   // 7. CHANTIER FOOTER (Row startRow + maxRows)
   const chantierRow = startRow + maxRows;
-  sheet.getRow(chantierRow).height = 24;
+  sheet.getRow(chantierRow).height = 26;
   sheet.mergeCells(`B${chantierRow}:E${chantierRow}`);
   const chantierCell = sheet.getCell(`B${chantierRow}`);
   const chantierText = data.chantier || data.clientNom;
   chantierCell.value = `Chantier ${chantierText}`;
-  chantierCell.font = { name: 'Calibri', size: 10, italic: true, bold: true, color: { argb: 'FF1F2937' } };
+  chantierCell.font = { name: 'Calibri', size: 10.5, italic: true, bold: true, color: { argb: 'FF1F2937' } };
   chantierCell.alignment = { horizontal: 'left', vertical: 'middle' };
 
   const footerBorder = {
