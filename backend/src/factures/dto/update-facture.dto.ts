@@ -76,6 +76,10 @@ export class UpdateFactureVenteDto {
 
   @IsOptional()
   @IsString()
+  modeLivraison?: string;
+
+  @IsOptional()
+  @IsString()
   chantier?: string;
 
   @IsOptional()

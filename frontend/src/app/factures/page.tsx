@@ -33,11 +33,12 @@ const emptyVenteForm = (isChimiral = false) => {
     codeClient: defaults.codeClient,
     bonCommande: '',
     numeroAttach: '',
-    conditionPaiement: 'CHÈQUE',
+    conditionPaiement: '60 JRs de la réception de facture',
+    modeLivraison: 'Par nos soins',
     lignes: [emptyLigne()],
     sequenceConfig: '',
     chantier: '',
-    hasBl: false,
+    hasBl: true,
   };
 };
 
@@ -190,7 +191,8 @@ export default function FacturesPage() {
         codeClient: full.codeClient,
         bonCommande: full.bonCommande || '',
         numeroAttach: full.numeroAttach || '',
-        conditionPaiement: full.conditionPaiement || 'CHÈQUE',
+        conditionPaiement: full.conditionPaiement || '60 JRs de la réception de facture',
+        modeLivraison: full.modeLivraison || 'Par nos soins',
         chantier: full.chantier || '',
         lignes: full.lignes?.length
           ? full.lignes.map((l: any) => ({
@@ -281,6 +283,7 @@ export default function FacturesPage() {
         bonCommande: formVente.bonCommande || undefined,
         numeroAttach: formVente.numeroAttach || undefined,
         conditionPaiement: formVente.conditionPaiement || undefined,
+        modeLivraison: formVente.modeLivraison || undefined,
         chantier: formVente.chantier || undefined,
         lignes,
         societe,
@@ -418,17 +421,31 @@ export default function FacturesPage() {
                   </td>
                 )}
                 <td className="table-td">
-                  {(tab.startsWith('bl') ? f.pdfPathBl : f.pdfPath) ? (
-                    isVente ? (
+                  {isVente ? (
+                    <div className="flex flex-wrap items-center gap-2">
                       <button
                         onClick={() => handleDownload(f)}
-                        className="inline-flex items-center gap-1 text-brand-600 hover:underline"
+                        className="inline-flex items-center gap-1 text-brand-600 hover:underline text-xs font-medium"
                       >
                         <FileDown size={14} /> PDF
                       </button>
-                    ) : (
-                      '✓'
-                    )
+                      {f.hasBl && (
+                        <>
+                          <button
+                            onClick={() => facturesApi.downloadVenteBlPdf(f.id, `bon-livraison-${f.numeroFacture.replace(/\//g, '-')}.pdf`)}
+                            className="inline-flex items-center gap-1 text-blue-600 hover:underline text-xs font-medium"
+                          >
+                            <FileDown size={14} /> BL PDF
+                          </button>
+                          <button
+                            onClick={() => facturesApi.downloadVenteBlExcel(f.id, `bon-livraison-${f.numeroFacture.replace(/\//g, '-')}.xlsx`)}
+                            className="inline-flex items-center gap-1 rounded bg-emerald-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-700 shadow-sm transition-colors"
+                          >
+                            <FileDown size={14} /> BL Excel
+                          </button>
+                        </>
+                      )}
+                    </div>
                   ) : (
                     '-'
                   )}
@@ -593,25 +610,21 @@ export default function FacturesPage() {
               <input className="input" value={formVente.codeClient} onChange={(e) => setFormVente({ ...formVente, codeClient: e.target.value })} />
             </div>
             <div>
-              <label className="label">Bon Commande</label>
-              <input className="input" value={formVente.bonCommande} onChange={(e) => setFormVente({ ...formVente, bonCommande: e.target.value })} />
+              <label className="label">N° Bon de Commande</label>
+              <input className="input" placeholder="Ex. BC-2026-99" value={formVente.bonCommande} onChange={(e) => setFormVente({ ...formVente, bonCommande: e.target.value })} />
             </div>
             <div>
-              <label className="label">N° Attach. / Mode de livraison</label>
-              <input className="input" value={formVente.numeroAttach} onChange={(e) => setFormVente({ ...formVente, numeroAttach: e.target.value })} />
+              <label className="label">Mode de livraison</label>
+              <input className="input" placeholder="Par nos soins" value={formVente.modeLivraison} onChange={(e) => setFormVente({ ...formVente, modeLivraison: e.target.value })} />
             </div>
             <div>
               <label className="label">Condition de Paiement</label>
-              <select
+              <input
                 className="input"
+                placeholder="60 JRs de la réception de facture"
                 value={formVente.conditionPaiement}
                 onChange={(e) => setFormVente({ ...formVente, conditionPaiement: e.target.value })}
-              >
-                <option value="CHÈQUE">CHÈQUE</option>
-                <option value="ESPÈCES">ESPÈCES</option>
-                <option value="EFFETS">EFFETS</option>
-                <option value="VIREMENT">VIREMENT</option>
-              </select>
+              />
             </div>
           </div>
 

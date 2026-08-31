@@ -12,6 +12,7 @@ import {
   formatNumeroFacture,
 } from '../common/facture.utils';
 import { generateFactureVentePdf } from '../common/facture-pdf.generator';
+import { generateBlExcelBuffer } from './bl-excel.generator';
 import {
   CreateFactureAchatDto,
   CreateFactureVenteDto,
@@ -250,7 +251,8 @@ export class FacturesService {
         codeClient: dto.codeClient ?? defaults.codeClient,
         bonCommande: dto.bonCommande,
         numeroAttach: dto.numeroAttach,
-        conditionPaiement: dto.conditionPaiement,
+        conditionPaiement: dto.conditionPaiement || '60 JRs de la réception de facture',
+        modeLivraison: dto.modeLivraison || 'Par nos soins',
         totalHt: totaux.totalHt,
         totalTva: totaux.totalTva,
         totalTtc: totaux.totalTtc,
@@ -443,5 +445,26 @@ export class FacturesService {
       doc.fontSize(14).text(`Montant : ${Number(facture.montant).toFixed(2)} MAD`, { underline: true });
     });
     return this.pdfService.getRelativePath(fullPath);
+  }
+
+  async generateBlExcel(id: number): Promise<Buffer> {
+    const facture = await this.findOneVente(id);
+    return generateBlExcelBuffer({
+      numeroBl: facture.numeroFacture,
+      dateFacture: facture.dateFacture,
+      clientNom: facture.clientNom,
+      clientIce: facture.clientIce ?? undefined,
+      codeClient: facture.codeClient ?? undefined,
+      bonCommande: facture.bonCommande ?? undefined,
+      conditionPaiement: facture.conditionPaiement ?? '60 JRs de la réception de facture',
+      modeLivraison: facture.modeLivraison ?? 'Par nos soins',
+      chantier: facture.chantier ?? undefined,
+      lignes: facture.lignes.map((l) => ({
+        code: undefined,
+        designation: l.designation,
+        quantite: Number(l.quantite),
+        prixUnitaire: Number(l.prixUnitaire),
+      })),
+    });
   }
 }

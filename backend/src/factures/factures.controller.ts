@@ -102,6 +102,22 @@ export class FacturesController {
     res.download(filePath, filename);
   }
 
+  @Get('vente/:id/bl/excel')
+  async downloadVenteBlExcel(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
+    const facture = await this.facturesService.findOneVente(id);
+    const buffer = await this.facturesService.generateBlExcel(id);
+    const societeName = (facture.societe || 'oxyral').toLowerCase();
+    const filename = `bon-livraison-${societeName}-${facture.numeroFacture.replace(/\//g, '-')}.xlsx`;
+
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': buffer.length,
+    });
+
+    res.send(buffer);
+  }
+
   @Get('vente/:id')
   findOneVente(@Param('id', ParseIntPipe) id: number) {
     return this.facturesService.findOneVente(id);

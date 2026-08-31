@@ -18,3 +18,5 @@ backend/prisma/dev.db-journal
 .env.local
 *.log
 backups/
+backend/storage/
+*.tsbuildinfo

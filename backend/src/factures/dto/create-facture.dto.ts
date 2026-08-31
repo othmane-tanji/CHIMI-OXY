@@ -91,6 +91,10 @@ export class CreateFactureVenteDto {
 
   @IsOptional()
   @IsString()
+  modeLivraison?: string;
+
+  @IsOptional()
+  @IsString()
   chantier?: string;
 
   @IsOptional()
