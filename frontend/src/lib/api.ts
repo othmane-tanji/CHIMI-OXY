@@ -116,6 +116,10 @@ export const congesApi = {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!res.ok) throw new Error('Téléchargement Excel impossible');
+    
+    const emailSent = res.headers.get('X-Email-Sent');
+    const emailMsg = res.headers.get('X-Email-Message');
+
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -123,6 +127,14 @@ export const congesApi = {
     a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+
+    if (sendEmail) {
+      if (emailSent === 'true') {
+        alert(`✅ Fichier Excel téléchargé ET envoyé par email avec succès à ${email || 'tangi.fat@gmail.com'} !`);
+      } else {
+        alert(`⚠️ Fichier Excel téléchargé sur votre PC !\n\nPour l'envoi d'email automatique vers ${email || 'tangi.fat@gmail.com'}, veuillez renseigner SMTP_USER et SMTP_PASS (mot de passe d'application Google) dans le fichier backend/.env.`);
+      }
+    }
   },
   downloadGlobalExcel: async (filename: string, annee?: number, sendEmail?: boolean, email?: string) => {
     const token = getToken();
@@ -135,6 +147,10 @@ export const congesApi = {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!res.ok) throw new Error('Téléchargement Excel global impossible');
+    
+    const emailSent = res.headers.get('X-Email-Sent');
+    const emailMsg = res.headers.get('X-Email-Message');
+
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -142,6 +158,14 @@ export const congesApi = {
     a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+
+    if (sendEmail) {
+      if (emailSent === 'true') {
+        alert(`✅ Master Excel téléchargé ET envoyé par email avec succès à ${email || 'tangi.fat@gmail.com'} !`);
+      } else {
+        alert(`⚠️ Master Excel téléchargé sur votre PC !\n\nPour l'envoi d'email automatique vers ${email || 'tangi.fat@gmail.com'}, veuillez renseigner SMTP_USER et SMTP_PASS (mot de passe d'application Google) dans le fichier backend/.env.`);
+      }
+    }
   },
 };
 

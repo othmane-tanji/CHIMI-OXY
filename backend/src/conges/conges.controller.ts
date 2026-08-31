@@ -60,18 +60,21 @@ export class CongesController {
 
     if (sendEmailStr === 'true') {
       const recipient = emailStr || 'tangi.fat@gmail.com';
-      await this.mailService.sendExcelBackupEmail(
+      const mailRes = await this.mailService.sendExcelBackupEmail(
         filename,
         buffer,
         recipient,
         `Master Export Global Congés (${annee})`,
       );
+      res.setHeader('X-Email-Sent', mailRes.success ? 'true' : 'false');
+      res.setHeader('X-Email-Message', encodeURIComponent(mailRes.message));
     }
 
     res.set({
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': `attachment; filename="${filename}"`,
       'Content-Length': buffer.length,
+      'Access-Control-Expose-Headers': 'Content-Disposition, X-Email-Sent, X-Email-Message',
     });
 
     res.send(buffer);
@@ -92,18 +95,21 @@ export class CongesController {
 
     if (sendEmailStr === 'true') {
       const recipient = emailStr || 'tangi.fat@gmail.com';
-      await this.mailService.sendExcelBackupEmail(
+      const mailRes = await this.mailService.sendExcelBackupEmail(
         filename,
         buffer,
         recipient,
         `Export Congés - ${filename}`,
       );
+      res.setHeader('X-Email-Sent', mailRes.success ? 'true' : 'false');
+      res.setHeader('X-Email-Message', encodeURIComponent(mailRes.message));
     }
 
     res.set({
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': `attachment; filename="${filename}"`,
       'Content-Length': buffer.length,
+      'Access-Control-Expose-Headers': 'Content-Disposition, X-Email-Sent, X-Email-Message',
     });
 
     res.send(buffer);
