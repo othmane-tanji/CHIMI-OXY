@@ -1,10 +1,9 @@
 import * as ExcelJS from 'exceljs';
-import * as path from 'path';
-import * as fs from 'fs';
 
 export interface BlExcelData {
   numeroBl: string;
   dateFacture: Date | string;
+  societe?: string;
   clientNom: string;
   clientIce?: string;
   codeClient?: string;
@@ -21,70 +20,218 @@ export interface BlExcelData {
 }
 
 export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> {
-  const templatePath = path.join(process.cwd(), 'templates', 'BL_ADNANE.xlsx');
-
   const wb = new ExcelJS.Workbook();
-  if (fs.existsSync(templatePath)) {
-    await wb.xlsx.readFile(templatePath);
-  }
+  wb.creator = 'Beta ERP';
 
-  const targetSheetName = 'BL MARK TANGER CITY CENTER 115';
-  let targetSheet = wb.getWorksheet(targetSheetName);
+  const sheet = wb.addWorksheet('Bon de Livraison');
+  sheet.views = [{ showGridLines: true }];
 
-  if (!targetSheet) {
-    targetSheet = wb.worksheets[0] || wb.addWorksheet('BL');
-  }
+  // Column widths matching exact layout
+  sheet.getColumn('A').width = 3;
+  sheet.getColumn('B').width = 14;
+  sheet.getColumn('C').width = 48;
+  sheet.getColumn('D').width = 18;
+  sheet.getColumn('E').width = 22;
 
-  // Keep ONLY the target sheet
-  const sheetIdToKeep = targetSheet.id;
-  const sheetsToRemove = wb.worksheets.filter((w) => w.id !== sheetIdToKeep);
-  sheetsToRemove.forEach((w) => wb.removeWorksheet(w.id));
+  const grayBorder = {
+    top: { style: 'thin' as const, color: { argb: 'FFA0A0A0' } },
+    left: { style: 'thin' as const, color: { argb: 'FFA0A0A0' } },
+    bottom: { style: 'thin' as const, color: { argb: 'FFA0A0A0' } },
+    right: { style: 'thin' as const, color: { argb: 'FFA0A0A0' } },
+  };
 
-  const cleanNum = (data.numeroBl || '2026-001').replace(/[^a-zA-Z0-9-]/g, '-');
-  targetSheet.name = `BL ${cleanNum}`.substring(0, 31);
+  const isChimiral = (data.societe || 'OXYRAL') === 'CHIMIRAL';
 
-  // Format date
+  // 1. TOP RIGHT BOX: "BON DE LIVRAISON"
+  sheet.mergeCells('D2:E3');
+  const blTitleCell = sheet.getCell('D2');
+  blTitleCell.value = 'BON DE LIVRAISON';
+  blTitleCell.font = { name: 'Calibri', size: 16, bold: true, color: { argb: 'FF000000' } };
+  blTitleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+  ['D2', 'E2', 'D3', 'E3'].forEach((addr) => {
+    sheet.getCell(addr).border = grayBorder;
+  });
+
+  // Sub-box Date (D4)
   const dateFormatted = data.dateFacture
     ? new Date(data.dateFacture).toLocaleDateString('fr-FR')
     : new Date().toLocaleDateString('fr-FR');
+  const dateCell = sheet.getCell('D4');
+  dateCell.value = `Date: ${dateFormatted}`;
+  dateCell.font = { name: 'Calibri', size: 10 };
+  dateCell.alignment = { horizontal: 'center', vertical: 'middle' };
+  dateCell.border = grayBorder;
 
-  // Populate Header Info
-  targetSheet.getCell('C14').value = `N° : ${data.numeroBl || ''}`;
-  targetSheet.getCell('E14').value = `Date : ${dateFormatted}`;
+  // Sub-box N° (E4)
+  const numCell = sheet.getCell('E4');
+  numCell.value = `N : ${data.numeroBl || ''}`;
+  numCell.font = { name: 'Calibri', size: 10 };
+  numCell.alignment = { horizontal: 'center', vertical: 'middle' };
+  numCell.border = grayBorder;
 
-  targetSheet.getCell('C16').value = `Client : ${data.clientNom || ''}`;
-  targetSheet.getCell('E16').value = `ICE : ${data.clientIce || ''}`;
+  // 2. COMPANY BOX (B6:C11)
+  sheet.mergeCells('B6:C11');
+  const compCell = sheet.getCell('B6');
+  compCell.value = isChimiral
+    ? `CHIMIRAL SARL\n12 Rue Des Hopitaux\nCasablanca\nTéléphone : 05 22 33 29 05\nMail: chimiral@oxyral.ma`
+    : `OXYRAL SARL\nZone Industriel TIT MELLIL\nCasablanca\nTéléphone : 0522 332 905\nFax       : 0522 329 062\nMail: oxyral2010@gmail.com`;
+  compCell.font = { name: 'Calibri', size: 10 };
+  compCell.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
 
-  targetSheet.getCell('C18').value = `Code Client : ${data.codeClient || 'OX704'}`;
-  targetSheet.getCell('E18').value = `N° BC : ${data.bonCommande || ''}`;
-
-  targetSheet.getCell('C20').value = `Condition de paiement : ${data.conditionPaiement || '60 JRs de la réception de facture'}`;
-  targetSheet.getCell('E20').value = `Mode de livraison : ${data.modeLivraison || 'Par nos soins'}`;
-
-  // Clear example items from Row 25 to 33
-  for (let r = 25; r <= 33; r++) {
-    const row = targetSheet.getRow(r);
-    row.getCell(2).value = null; // Code
-    row.getCell(3).value = null; // Designation
-    row.getCell(4).value = null; // Qte
-    row.getCell(5).value = null; // PU
+  for (let r = 6; r <= 11; r++) {
+    sheet.getCell(`B${r}`).border = grayBorder;
+    sheet.getCell(`C${r}`).border = grayBorder;
   }
 
-  // Populate Lignes starting at Row 25
-  const lignes = data.lignes || [];
-  lignes.forEach((l, idx) => {
-    const r = 25 + idx;
-    const row = targetSheet.getRow(r);
-    row.getCell(2).value = l.code || '';
-    row.getCell(3).value = l.designation || '';
-    row.getCell(4).value = l.quantite ? Number(l.quantite) : 0;
-    row.getCell(5).value = l.prixUnitaire ? Number(l.prixUnitaire) : 0;
+  // 3. CLIENT BOX (D6:E11)
+  sheet.mergeCells('D6:E11');
+  const clientCell = sheet.getCell('D6');
+  const clientNom = (data.clientNom || '').toUpperCase();
+  const clientIce = data.clientIce ? `ICE: ${data.clientIce}` : '';
+  clientCell.value = `${clientNom}\n${clientIce}`;
+  clientCell.font = { name: 'Calibri', size: 14, bold: true };
+  clientCell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+
+  for (let r = 6; r <= 11; r++) {
+    sheet.getCell(`D${r}`).border = grayBorder;
+    sheet.getCell(`E${r}`).border = grayBorder;
+  }
+
+  // 4. METRIC BOXES (Rows 13-15)
+  const headerFont = { name: 'Calibri', size: 9, bold: true };
+  const valFont = { name: 'Calibri', size: 9.5 };
+
+  // Code client
+  sheet.getCell('B13').value = 'Code client';
+  sheet.getCell('B13').font = headerFont;
+  sheet.getCell('B13').alignment = { horizontal: 'center', vertical: 'middle' };
+  sheet.getCell('B13').border = grayBorder;
+
+  sheet.getCell('B15').value = data.codeClient || (isChimiral ? 'CH704' : '601');
+  sheet.getCell('B15').font = valFont;
+  sheet.getCell('B15').alignment = { horizontal: 'center', vertical: 'middle' };
+  sheet.getCell('B15').border = grayBorder;
+
+  // N° BON COMMANDE
+  sheet.getCell('C13').value = 'N° BON COMMANDE';
+  sheet.getCell('C13').font = headerFont;
+  sheet.getCell('C13').alignment = { horizontal: 'center', vertical: 'middle' };
+  sheet.getCell('C13').border = grayBorder;
+
+  sheet.getCell('C15').value = data.bonCommande || '';
+  sheet.getCell('C15').font = valFont;
+  sheet.getCell('C15').alignment = { horizontal: 'center', vertical: 'middle' };
+  sheet.getCell('C15').border = grayBorder;
+
+  // Conditions de payement
+  sheet.getCell('D13').value = 'Conditions de payement';
+  sheet.getCell('D13').font = headerFont;
+  sheet.getCell('D13').alignment = { horizontal: 'center', vertical: 'middle' };
+  sheet.getCell('D13').border = grayBorder;
+
+  sheet.getCell('D15').value = data.conditionPaiement || '60 JRs de la réception de facture';
+  sheet.getCell('D15').font = valFont;
+  sheet.getCell('D15').alignment = { horizontal: 'center', vertical: 'middle' };
+  sheet.getCell('D15').border = grayBorder;
+
+  // Mode de livraison
+  sheet.getCell('E13').value = 'Mode de livraison';
+  sheet.getCell('E13').font = headerFont;
+  sheet.getCell('E13').alignment = { horizontal: 'center', vertical: 'middle' };
+  sheet.getCell('E13').border = grayBorder;
+
+  sheet.getCell('E15').value = data.modeLivraison || 'Par nos soins';
+  sheet.getCell('E15').font = valFont;
+  sheet.getCell('E15').alignment = { horizontal: 'center', vertical: 'middle' };
+  sheet.getCell('E15').border = grayBorder;
+
+  // 5. TABLE HEADER (Row 18)
+  const thRow = 18;
+  const thFont = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF374151' } };
+  const thBorder = {
+    top: { style: 'thin' as const, color: { argb: 'FF000000' } },
+    left: { style: 'thin' as const, color: { argb: 'FF000000' } },
+    bottom: { style: 'thin' as const, color: { argb: 'FF000000' } },
+    right: { style: 'thin' as const, color: { argb: 'FF000000' } },
+  };
+  const thFill = { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FFE5E7EB' } };
+
+  const headers = [
+    { col: 'B', text: 'CODE' },
+    { col: 'C', text: 'Désignations' },
+    { col: 'D', text: 'Qté' },
+    { col: 'E', text: 'Prix Unitaire' },
+  ];
+
+  headers.forEach((h) => {
+    const cell = sheet.getCell(`${h.col}${thRow}`);
+    cell.value = h.text;
+    cell.font = thFont;
+    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    cell.border = thBorder;
+    cell.fill = thFill;
   });
 
-  // Chantier at Row 34
-  const chantierValue = data.chantier || data.clientNom;
-  if (chantierValue) {
-    targetSheet.getCell('C34').value = `Chantier ${chantierValue}`;
+  // 6. TABLE BODY (Rows 19 to 32)
+  const lignes = data.lignes || [];
+  const startRow = 19;
+  const maxRows = Math.max(lignes.length, 12);
+
+  for (let i = 0; i < maxRows; i++) {
+    const r = startRow + i;
+    const item = lignes[i];
+
+    const cellB = sheet.getCell(`B${r}`);
+    const cellC = sheet.getCell(`C${r}`);
+    const cellD = sheet.getCell(`D${r}`);
+    const cellE = sheet.getCell(`E${r}`);
+
+    cellB.value = item?.code || '';
+    cellC.value = item?.designation || '';
+    cellD.value = item ? Number(item.quantite) : null;
+    cellE.value = item ? Number(item.prixUnitaire) : null;
+
+    cellB.font = { name: 'Calibri', size: 10 };
+    cellC.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF1E3A8A' } };
+    cellD.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF1E3A8A' } };
+    cellE.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF1E3A8A' } };
+
+    cellB.alignment = { horizontal: 'center', vertical: 'middle' };
+    cellC.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
+    cellD.alignment = { horizontal: 'right', vertical: 'middle' };
+    cellE.alignment = { horizontal: 'right', vertical: 'middle' };
+
+    cellD.numFmt = '#,##0.00';
+    cellE.numFmt = '#,##0.00';
+
+    const rowBorder = {
+      left: { style: 'thin' as const, color: { argb: 'FF000000' } },
+      right: { style: 'thin' as const, color: { argb: 'FF000000' } },
+    };
+    cellB.border = rowBorder;
+    cellC.border = rowBorder;
+    cellD.border = rowBorder;
+    cellE.border = rowBorder;
+  }
+
+  // 7. CHANTIER FOOTER (Row startRow + maxRows)
+  const chantierRow = startRow + maxRows;
+  sheet.mergeCells(`B${chantierRow}:E${chantierRow}`);
+  const chantierCell = sheet.getCell(`B${chantierRow}`);
+  const chantierText = data.chantier || data.clientNom;
+  chantierCell.value = `Chantier ${chantierText}`;
+  chantierCell.font = { name: 'Calibri', size: 10, italic: true, bold: true, color: { argb: 'FF374151' } };
+  chantierCell.alignment = { horizontal: 'left', vertical: 'middle' };
+
+  const footerBorder = {
+    top: { style: 'thin' as const, color: { argb: 'FF000000' } },
+    left: { style: 'thick' as const, color: { argb: 'FF000000' } },
+    bottom: { style: 'thick' as const, color: { argb: 'FF000000' } },
+    right: { style: 'thick' as const, color: { argb: 'FF000000' } },
+  };
+  for (const col of ['B', 'C', 'D', 'E']) {
+    sheet.getCell(`${col}${chantierRow}`).border = footerBorder;
   }
 
   const buffer = await wb.xlsx.writeBuffer();

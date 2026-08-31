@@ -452,6 +452,7 @@ export class FacturesService {
     return generateBlExcelBuffer({
       numeroBl: facture.numeroFacture,
       dateFacture: facture.dateFacture,
+      societe: facture.societe,
       clientNom: facture.clientNom,
       clientIce: facture.clientIce ?? undefined,
       codeClient: facture.codeClient ?? undefined,
