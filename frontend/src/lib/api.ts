@@ -97,11 +97,20 @@ export const congesApi = {
     api<any>(`/conges/resume-mensuel/${employeId}?annee=${annee}`),
   create: (data: any) => api('/conges', { method: 'POST', body: JSON.stringify(data) }),
   remove: (id: number) => api(`/conges/${id}`, { method: 'DELETE' }),
-  downloadExcel: async (employeId: number, filename: string, annee?: number, mois?: number) => {
+  downloadExcel: async (
+    employeId: number,
+    filename: string,
+    annee?: number,
+    mois?: number,
+    sendEmail?: boolean,
+    email?: string,
+  ) => {
     const token = getToken();
     const q = new URLSearchParams();
     if (annee) q.set('annee', String(annee));
     if (mois) q.set('mois', String(mois));
+    if (sendEmail) q.set('sendEmail', 'true');
+    if (email) q.set('email', email);
     const query = q.toString();
     const res = await fetch(`${API_URL}/conges/excel/${employeId}${query ? `?${query}` : ''}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -115,10 +124,14 @@ export const congesApi = {
     a.click();
     URL.revokeObjectURL(url);
   },
-  downloadGlobalExcel: async (filename: string, annee?: number) => {
+  downloadGlobalExcel: async (filename: string, annee?: number, sendEmail?: boolean, email?: string) => {
     const token = getToken();
-    const q = annee ? `?annee=${annee}` : '';
-    const res = await fetch(`${API_URL}/conges/excel-global${q}`, {
+    const q = new URLSearchParams();
+    if (annee) q.set('annee', String(annee));
+    if (sendEmail) q.set('sendEmail', 'true');
+    if (email) q.set('email', email);
+    const query = q.toString();
+    const res = await fetch(`${API_URL}/conges/excel-global${query ? `?${query}` : ''}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!res.ok) throw new Error('Téléchargement Excel global impossible');

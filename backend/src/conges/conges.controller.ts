@@ -14,11 +14,15 @@ import { Response } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CongesService } from './conges.service';
 import { CreateCongeDto } from './dto/create-conge.dto';
+import { MailService } from '../common/mail.service';
 
 @Controller('conges')
 @UseGuards(JwtAuthGuard)
 export class CongesController {
-  constructor(private congesService: CongesService) {}
+  constructor(
+    private congesService: CongesService,
+    private mailService: MailService,
+  ) {}
 
   @Get()
   findAll(
@@ -48,9 +52,21 @@ export class CongesController {
   async exportExcelGlobal(
     @Res() res: Response,
     @Query('annee') anneeStr?: string,
+    @Query('sendEmail') sendEmailStr?: string,
+    @Query('email') emailStr?: string,
   ) {
     const annee = anneeStr ? parseInt(anneeStr, 10) : new Date().getFullYear();
     const { filename, buffer } = await this.congesService.exportExcelGlobal(annee);
+
+    if (sendEmailStr === 'true') {
+      const recipient = emailStr || 'tangi.fat@gmail.com';
+      await this.mailService.sendExcelBackupEmail(
+        filename,
+        buffer,
+        recipient,
+        `Master Export Global Congés (${annee})`,
+      );
+    }
 
     res.set({
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -67,10 +83,22 @@ export class CongesController {
     @Param('employeId', ParseIntPipe) employeId: number,
     @Query('annee') anneeStr?: string,
     @Query('mois') moisStr?: string,
+    @Query('sendEmail') sendEmailStr?: string,
+    @Query('email') emailStr?: string,
   ) {
     const annee = anneeStr ? parseInt(anneeStr, 10) : new Date().getFullYear();
     const mois = moisStr ? parseInt(moisStr, 10) : undefined;
     const { filename, buffer } = await this.congesService.exportExcel(employeId, annee, mois);
+
+    if (sendEmailStr === 'true') {
+      const recipient = emailStr || 'tangi.fat@gmail.com';
+      await this.mailService.sendExcelBackupEmail(
+        filename,
+        buffer,
+        recipient,
+        `Export Congés - ${filename}`,
+      );
+    }
 
     res.set({
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

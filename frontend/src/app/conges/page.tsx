@@ -128,35 +128,68 @@ export default function CongesPage() {
     loadData();
   };
 
-  const handleDownloadExcel = async (
-    employeId: number,
-    nom: string,
-    prenom: string,
+  const [excelModal, setExcelModal] = useState<{
+    open: boolean;
+    isGlobal: boolean;
+    employeId?: number;
+    nom?: string;
+    prenom?: string;
+    moisOptional?: number;
+    isAllYears?: boolean;
+  }>({ open: false, isGlobal: false });
+  const [exportEmail, setExportEmail] = useState('tangi.fat@gmail.com');
+  const [sendEmailCopy, setSendEmailCopy] = useState(true);
+  const [exportingExcel, setExportingExcel] = useState(false);
+
+  const triggerExcelExport = (
+    isGlobal: boolean,
+    employeId?: number,
+    nom?: string,
+    prenom?: string,
     moisOptional?: number,
     isAllYears?: boolean,
   ) => {
-    try {
-      const nomClean = `${prenom}-${nom}`.toLowerCase().replace(/[^a-z0-9]/g, '-');
-      const moisNoms = [
-        'janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin',
-        'juillet', 'aout', 'septembre', 'octobre', 'novembre', 'decembre',
-      ];
-      const moisSuffix = !isAllYears && moisOptional ? `-${moisNoms[moisOptional - 1]}` : '';
-      const anneeSuffix = isAllYears ? '-toutes-les-annees' : `-${tableAnnee}`;
-      const filename = `releve-conges-${nomClean}${moisSuffix}${anneeSuffix}.xlsx`;
-      
-      await congesApi.downloadExcel(employeId, filename, isAllYears ? 0 : +tableAnnee, isAllYears ? undefined : moisOptional);
-    } catch (err: any) {
-      alert('Erreur lors du téléchargement Excel : ' + err.message);
-    }
+    setExcelModal({
+      open: true,
+      isGlobal,
+      employeId,
+      nom,
+      prenom,
+      moisOptional,
+      isAllYears,
+    });
   };
 
-  const handleDownloadGlobalExcel = async () => {
+  const confirmExcelExport = async () => {
+    setExportingExcel(true);
     try {
-      const filename = `releve-conges-tous-les-employes-${tableAnnee}.xlsx`;
-      await congesApi.downloadGlobalExcel(filename, +tableAnnee);
+      if (excelModal.isGlobal) {
+        const filename = `releve-conges-tous-les-employes-${tableAnnee}.xlsx`;
+        await congesApi.downloadGlobalExcel(filename, +tableAnnee, sendEmailCopy, exportEmail);
+      } else if (excelModal.employeId && excelModal.nom && excelModal.prenom) {
+        const nomClean = `${excelModal.prenom}-${excelModal.nom}`.toLowerCase().replace(/[^a-z0-9]/g, '-');
+        const moisNoms = [
+          'janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin',
+          'juillet', 'aout', 'septembre', 'octobre', 'novembre', 'decembre',
+        ];
+        const moisSuffix = !excelModal.isAllYears && excelModal.moisOptional ? `-${moisNoms[excelModal.moisOptional - 1]}` : '';
+        const anneeSuffix = excelModal.isAllYears ? '-toutes-les-annees' : `-${tableAnnee}`;
+        const filename = `releve-conges-${nomClean}${moisSuffix}${anneeSuffix}.xlsx`;
+
+        await congesApi.downloadExcel(
+          excelModal.employeId,
+          filename,
+          excelModal.isAllYears ? 0 : +tableAnnee,
+          excelModal.isAllYears ? undefined : excelModal.moisOptional,
+          sendEmailCopy,
+          exportEmail,
+        );
+      }
+      setExcelModal({ open: false, isGlobal: false });
     } catch (err: any) {
-      alert('Erreur lors du téléchargement Excel global : ' + err.message);
+      alert('Erreur lors du téléchargement / envoi Excel : ' + err.message);
+    } finally {
+      setExportingExcel(false);
     }
   };
 
@@ -181,7 +214,7 @@ export default function CongesPage() {
         action={
           <div className="flex flex-wrap gap-2">
             <button
-              onClick={handleDownloadGlobalExcel}
+              onClick={() => triggerExcelExport(true)}
               className="btn-secondary flex items-center gap-1.5 border-blue-600 text-blue-700 bg-blue-50/50 hover:bg-blue-100 dark:border-blue-500 dark:text-blue-400 dark:bg-blue-950/40 dark:hover:bg-blue-900/60 font-semibold"
               title="Télécharger UN SEUL fichier Excel avec CHAQUE employé sur sa propre feuille d'onglet"
             >
@@ -190,14 +223,14 @@ export default function CongesPage() {
             {tableEmploye && employeFiltreLabel && (
               <>
                 <button
-                  onClick={() => handleDownloadExcel(+tableEmploye, employeFiltreLabel.nom, employeFiltreLabel.prenom, +tableMois)}
+                  onClick={() => triggerExcelExport(false, +tableEmploye, employeFiltreLabel.nom, employeFiltreLabel.prenom, +tableMois)}
                   className="btn-secondary flex items-center gap-1.5 border-emerald-600 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-500 dark:text-emerald-400 dark:hover:bg-emerald-950/40"
                   title="Télécharger l'Excel pour le mois sélectionné"
                 >
                   <FileSpreadsheet size={16} className="text-emerald-600" /> Excel ({nomMoisFiltreLabel})
                 </button>
                 <button
-                  onClick={() => handleDownloadExcel(+tableEmploye, employeFiltreLabel.nom, employeFiltreLabel.prenom, undefined, true)}
+                  onClick={() => triggerExcelExport(false, +tableEmploye, employeFiltreLabel.nom, employeFiltreLabel.prenom, undefined, true)}
                   className="btn-secondary flex items-center gap-1.5 border-purple-600 text-purple-700 hover:bg-purple-50 dark:border-purple-500 dark:text-purple-400 dark:hover:bg-purple-950/40"
                   title="Télécharger l'Excel historique de TOUTES les années"
                 >
@@ -266,7 +299,7 @@ export default function CongesPage() {
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleDownloadExcel(s.employeId, s.nom, s.prenom, +tableMois);
+                    triggerExcelExport(false, s.employeId, s.nom, s.prenom, +tableMois);
                   }}
                   title={`Télécharger Excel pour ${nomMoisFiltreLabel}`}
                   className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-2 py-1 rounded dark:bg-emerald-950/40 dark:text-emerald-400"
@@ -277,7 +310,7 @@ export default function CongesPage() {
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleDownloadExcel(s.employeId, s.nom, s.prenom, undefined, true);
+                    triggerExcelExport(false, s.employeId, s.nom, s.prenom, undefined, true);
                   }}
                   title="Télécharger l'Excel de TOUTES les années"
                   className="flex items-center gap-1 text-[11px] font-semibold text-purple-600 hover:text-purple-700 bg-purple-50 px-2 py-1 rounded dark:bg-purple-950/40 dark:text-purple-400"
@@ -300,21 +333,21 @@ export default function CongesPage() {
               </h3>
               <div className="flex flex-wrap gap-1.5">
                 <button
-                  onClick={() => handleDownloadExcel(solde.employe.id, solde.employe.nom, solde.employe.prenom, +tableMois)}
+                  onClick={() => triggerExcelExport(false, solde.employe.id, solde.employe.nom, solde.employe.prenom, +tableMois)}
                   className="btn-secondary text-xs flex items-center gap-1.5 border-emerald-600 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-500 dark:text-emerald-400"
                   title={`Télécharger Excel du mois de ${nomMoisFiltreLabel}`}
                 >
                   <FileSpreadsheet size={14} className="text-emerald-600" /> Excel ({nomMoisFiltreLabel})
                 </button>
                 <button
-                  onClick={() => handleDownloadExcel(solde.employe.id, solde.employe.nom, solde.employe.prenom)}
+                  onClick={() => triggerExcelExport(false, solde.employe.id, solde.employe.nom, solde.employe.prenom)}
                   className="btn-secondary text-xs flex items-center gap-1.5 text-gray-600 hover:bg-gray-100"
                   title={`Télécharger l'Excel complet de l'année ${tableAnnee}`}
                 >
                   {tableAnnee}
                 </button>
                 <button
-                  onClick={() => handleDownloadExcel(solde.employe.id, solde.employe.nom, solde.employe.prenom, undefined, true)}
+                  onClick={() => triggerExcelExport(false, solde.employe.id, solde.employe.nom, solde.employe.prenom, undefined, true)}
                   className="btn-secondary text-xs flex items-center gap-1.5 border-purple-600 text-purple-700 hover:bg-purple-50 dark:border-purple-500 dark:text-purple-400"
                   title="Télécharger l'Excel historique de TOUTES les années"
                 >
@@ -349,7 +382,7 @@ export default function CongesPage() {
                   <strong>{moisFiltre.joursAbsents} jour(s) absent(s)</strong>
                 </div>
                 <button
-                  onClick={() => handleDownloadExcel(solde.employe.id, solde.employe.nom, solde.employe.prenom, +tableMois)}
+                  onClick={() => triggerExcelExport(false, solde.employe.id, solde.employe.nom, solde.employe.prenom, +tableMois)}
                   className="text-xs font-semibold text-emerald-700 hover:underline flex items-center gap-1"
                 >
                   <FileSpreadsheet size={13} /> Télécharger cet Excel
@@ -700,6 +733,77 @@ export default function CongesPage() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Modal d'exportation Excel et de sauvegarde par email */}
+      <Modal
+        open={excelModal.open}
+        onClose={() => setExcelModal({ open: false, isGlobal: false })}
+        title="Exportation Excel & Sauvegarde Email"
+      >
+        <div className="space-y-4">
+          <div className="rounded-lg bg-emerald-50 p-3.5 dark:bg-emerald-950/40 text-sm">
+            <p className="font-semibold text-emerald-800 dark:text-emerald-300">
+              📊 Exportation Excel prête !
+            </p>
+            <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-400">
+              {excelModal.isGlobal
+                ? `Rapport consolidé Master Excel pour tous les employés (${tableAnnee})`
+                : `Relevé pour ${excelModal.prenom} ${excelModal.nom} (${excelModal.isAllYears ? 'Historique complet' : tableAnnee})`}
+            </p>
+          </div>
+
+          <div className="space-y-3 rounded-lg border border-gray-200 p-4 dark:border-gray-800">
+            <label className="flex items-center gap-2 cursor-pointer text-sm font-medium">
+              <input
+                type="checkbox"
+                checked={sendEmailCopy}
+                onChange={(e) => setSendEmailCopy(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+              />
+              Envoyer une copie de sauvegarde par Email
+            </label>
+
+            {sendEmailCopy && (
+              <div>
+                <label className="label text-xs">Adresse email destinataire de la sauvegarde</label>
+                <input
+                  type="email"
+                  className="input text-sm"
+                  value={exportEmail}
+                  onChange={(e) => setExportEmail(e.target.value)}
+                  placeholder="tangi.fat@gmail.com"
+                />
+                <p className="mt-1 text-[11px] text-gray-500">
+                  Une copie du fichier `.xlsx` sera transmise à cet email pour archivage et sauvegarde.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => setExcelModal({ open: false, isGlobal: false })}
+              className="btn-secondary text-sm"
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              onClick={confirmExcelExport}
+              disabled={exportingExcel}
+              className="btn-primary text-sm flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              <FileSpreadsheet size={16} />
+              {exportingExcel
+                ? 'Exportation & Envoi...'
+                : sendEmailCopy
+                ? 'Télécharger & Envoyer par Email'
+                : 'Télécharger l\'Excel'}
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   );
