@@ -25,7 +25,7 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
 
   const sheet = wb.addWorksheet('Bon de Livraison');
 
-  // Configuration d'impression 100% Pleine Page A4 (sans espace blanc résiduel)
+  // Configuration d'impression 100% Pleine Page A4 (centré et ajusté)
   sheet.pageSetup = {
     paperSize: 9, // Format A4
     orientation: 'portrait',
@@ -207,7 +207,7 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
 
   // 5. TABLE HEADER (Row 18)
   const thRow = 18;
-  sheet.getRow(thRow).height = 30;
+  sheet.getRow(thRow).height = 32;
 
   const thFont = { name: 'Arial', size: 11.5, bold: true, color: { argb: 'FF1F2937' } };
   const thBorder = {
@@ -234,17 +234,18 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
     cell.fill = thFill;
   });
 
-  // 6. TABLE BODY (Hauteur de ligne 32px aérée + Texte Désignation 12pt Gras)
+  // 6. TABLE BODY (Grandes cases aérées de 58px à 78px de hauteur par ligne)
   const lignes = data.lignes || [];
   const startRow = 19;
-  const maxRows = Math.max(lignes.length, 16);
+  const itemRowsCount = Math.max(lignes.length, 8);
 
-  for (let i = 0; i < maxRows; i++) {
+  for (let i = 0; i < itemRowsCount; i++) {
     const r = startRow + i;
     const item = lignes[i];
     
-    // Espacement vertical aéré (32px par défaut, 44px si texte long)
-    sheet.getRow(r).height = item?.designation && item.designation.length > 45 ? 44 : 32;
+    // Hauteur de ligne spacieuse (58px base, 68px/78px si désignation longue)
+    const textLen = item?.designation ? item.designation.length : 0;
+    sheet.getRow(r).height = textLen > 60 ? 78 : (textLen > 30 ? 68 : 58);
 
     const cellB = sheet.getCell(`B${r}`);
     const cellC = sheet.getCell(`C${r}`);
@@ -258,10 +259,10 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
 
     cellB.font = { name: 'Calibri', size: 11 };
     
-    // Taille du texte Désignation agrandie (12pt Gras Arial) pour une visibilité optimale
+    // Texte Désignation 12pt Gras Arial
     cellC.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FF1E3A8A' } };
-    cellD.font = { name: 'Calibri', size: 11.5, bold: true, color: { argb: 'FF1E3A8A' } };
-    cellE.font = { name: 'Calibri', size: 11.5, bold: true, color: { argb: 'FF1E3A8A' } };
+    cellD.font = { name: 'Calibri', size: 12, bold: true, color: { argb: 'FF1E3A8A' } };
+    cellE.font = { name: 'Calibri', size: 12, bold: true, color: { argb: 'FF1E3A8A' } };
 
     cellB.alignment = { horizontal: 'center', vertical: 'middle' };
     cellC.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
@@ -272,9 +273,10 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
     cellE.numFmt = '#,##0.00';
 
     const rowBorder = {
+      top: { style: 'thin' as const, color: { argb: 'FF9CA3AF' } },
       left: { style: 'thin' as const, color: { argb: 'FF9CA3AF' } },
       right: { style: 'thin' as const, color: { argb: 'FF9CA3AF' } },
-      bottom: { style: 'dotted' as const, color: { argb: 'FFE5E7EB' } },
+      bottom: { style: 'thin' as const, color: { argb: 'FF9CA3AF' } },
     };
     cellB.border = rowBorder;
     cellC.border = rowBorder;
@@ -283,8 +285,8 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
   }
 
   // 7. CHANTIER FOOTER (Bas de page A4)
-  const chantierRow = startRow + maxRows;
-  sheet.getRow(chantierRow).height = 30;
+  const chantierRow = startRow + itemRowsCount;
+  sheet.getRow(chantierRow).height = 32;
   sheet.mergeCells(`B${chantierRow}:E${chantierRow}`);
   const chantierCell = sheet.getCell(`B${chantierRow}`);
   const chantierText = data.chantier || data.clientNom;
