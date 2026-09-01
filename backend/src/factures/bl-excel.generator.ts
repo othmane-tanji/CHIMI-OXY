@@ -25,17 +25,17 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
 
   const sheet = wb.addWorksheet('Bon de Livraison');
 
-  // Configuration d'impression 100% Pleine Page A4 (centré et ajusté)
+  // Configuration d'impression A4 avec marge dédiée à gauche pour barre/bande de couleur personnalisée
   sheet.pageSetup = {
     paperSize: 9, // Format A4
     orientation: 'portrait',
     fitToPage: true,
     fitToWidth: 1,
     fitToHeight: 1,
-    horizontalCentered: true,
+    horizontalCentered: false, // Alignement gauche pour préserver l'espace de la barre latérale sur la Colonne A
     verticalCentered: true,
     margins: {
-      left: 0.25,
+      left: 0.35,
       right: 0.25,
       top: 0.3,
       bottom: 0.3,
@@ -46,12 +46,8 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
 
   sheet.views = [{ showGridLines: true }];
 
-  // Colonnes équilibrées pour remplir 100% de la largeur A4 :
-  // Col B (14) : CODE / Code client
-  // Col C (46) : Désignations (large et très lisible) / N° BON COMMANDE
-  // Col D (24) : Conditions de payement / Qté
-  // Col E (24) : Mode de livraison / Prix Unitaire
-  sheet.getColumn('A').width = 2.5;
+  // Colonne A élargie (largeur 8) pour accueillir la barre latérale en couleur personnalisée
+  sheet.getColumn('A').width = 8;
   sheet.getColumn('B').width = 14;
   sheet.getColumn('C').width = 46;
   sheet.getColumn('D').width = 24;
