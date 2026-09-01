@@ -13,6 +13,9 @@ if not exist "node_modules\nodemailer" (
   echo Installation des dependances (nodemailer)...
   call npm.cmd install
 )
+echo Mise a jour Prisma Client et Base de donnees...
+call npx.cmd prisma db push --skip-generate
+call npx.cmd prisma generate
 call npm.cmd run build
 
 cd /d "%~dp0frontend"
