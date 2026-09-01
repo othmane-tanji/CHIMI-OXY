@@ -46,8 +46,8 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
 
   sheet.views = [{ showGridLines: true }];
 
-  // Colonne A élargie (largeur 8) pour accueillir la barre latérale en couleur personnalisée
-  sheet.getColumn('A').width = 8;
+  // Colonne A réglée à EXACTEMENT 63 PIXELS (largeur Excel 7.71)
+  sheet.getColumn('A').width = 7.71;
   sheet.getColumn('B').width = 14;
   sheet.getColumn('C').width = 46;
   sheet.getColumn('D').width = 24;
