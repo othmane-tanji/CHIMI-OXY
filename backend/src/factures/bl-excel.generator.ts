@@ -112,13 +112,23 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
   numCell.border = thinBorder;
   numCell.fill = softFill;
 
-  // 2. CADRE ENTREPRISE (B6:C11)
+  // 2. CADRE ENTREPRISE (B6:C11) - OXYRAL SARL / CHIMIRAL SARL en Gras Taille 12
   sheet.mergeCells('B6:C11');
   const compCell = sheet.getCell('B6');
-  compCell.value = isChimiral
-    ? `CHIMIRAL SARL\n12 Rue Des Hopitaux\nCasablanca\nTéléphone : 05 22 33 29 05\nMail: chimiral@oxyral.ma`
-    : `OXYRAL SARL\nZone Industriel TIT MELLIL\nCasablanca\nTéléphone : 0522 332 905\nFax       : 0522 329 062\nMail: oxyral2010@gmail.com`;
-  compCell.font = { name: 'Calibri', size: 10.5, color: { argb: 'FF1F2937' } };
+  compCell.value = {
+    richText: [
+      {
+        font: { name: 'Arial', size: 12, bold: true, color: { argb: 'FF1F2937' } },
+        text: isChimiral ? 'CHIMIRAL SARL\n' : 'OXYRAL SARL\n',
+      },
+      {
+        font: { name: 'Calibri', size: 10, color: { argb: 'FF374151' } },
+        text: isChimiral
+          ? `12 Rue Des Hopitaux\nCasablanca\nTéléphone : 05 22 33 29 05\nMail: chimiral@oxyral.ma`
+          : `Zone Industriel TIT MELLIL\nCasablanca\nTéléphone : 0522 332 905\nFax       : 0522 329 062\nMail: oxyral2010@gmail.com`,
+      },
+    ],
+  };
   compCell.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true, indent: 1 };
   compCell.fill = softFill;
 
