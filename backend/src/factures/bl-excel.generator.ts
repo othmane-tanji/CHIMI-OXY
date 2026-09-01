@@ -47,13 +47,13 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
   sheet.views = [{ showGridLines: true }];
 
   // Colonnes équilibrées pour remplir 100% de la largeur A4 :
-  // Col B (15) : CODE / Code client
-  // Col C (48) : Désignations / N° BON COMMANDE
+  // Col B (14) : CODE / Code client
+  // Col C (46) : Désignations (large et très lisible) / N° BON COMMANDE
   // Col D (24) : Conditions de payement / Qté
   // Col E (24) : Mode de livraison / Prix Unitaire
   sheet.getColumn('A').width = 2.5;
-  sheet.getColumn('B').width = 15;
-  sheet.getColumn('C').width = 48;
+  sheet.getColumn('B').width = 14;
+  sheet.getColumn('C').width = 46;
   sheet.getColumn('D').width = 24;
   sheet.getColumn('E').width = 24;
 
@@ -148,7 +148,7 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
 
   // 4. CADRES DES 4 MÉTRIQUES (Rows 13 & 15)
   const headerFont = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF374151' } };
-  const valFont = { name: 'Calibri', size: 10, color: { argb: 'FF111827' } };
+  const valFont = { name: 'Calibri', size: 10.5, color: { argb: 'FF111827' } };
 
   // Code client
   sheet.getCell('B13').value = 'Code client';
@@ -207,9 +207,9 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
 
   // 5. TABLE HEADER (Row 18)
   const thRow = 18;
-  sheet.getRow(thRow).height = 28;
+  sheet.getRow(thRow).height = 30;
 
-  const thFont = { name: 'Arial', size: 11, bold: true, color: { argb: 'FF1F2937' } };
+  const thFont = { name: 'Arial', size: 11.5, bold: true, color: { argb: 'FF1F2937' } };
   const thBorder = {
     top: { style: 'medium' as const, color: { argb: 'FF4B5563' } },
     left: { style: 'thin' as const, color: { argb: 'FF4B5563' } },
@@ -234,15 +234,17 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
     cell.fill = thFill;
   });
 
-  // 6. TABLE BODY (19 lignes pour remplir 100% de la hauteur verticale A4)
+  // 6. TABLE BODY (Hauteur de ligne 32px aérée + Texte Désignation 12pt Gras)
   const lignes = data.lignes || [];
   const startRow = 19;
-  const maxRows = Math.max(lignes.length, 19);
+  const maxRows = Math.max(lignes.length, 16);
 
   for (let i = 0; i < maxRows; i++) {
     const r = startRow + i;
     const item = lignes[i];
-    sheet.getRow(r).height = item?.designation && item.designation.length > 50 ? 36 : 26;
+    
+    // Espacement vertical aéré (32px par défaut, 44px si texte long)
+    sheet.getRow(r).height = item?.designation && item.designation.length > 45 ? 44 : 32;
 
     const cellB = sheet.getCell(`B${r}`);
     const cellC = sheet.getCell(`C${r}`);
@@ -254,10 +256,12 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
     cellD.value = item ? Number(item.quantite) : null;
     cellE.value = item ? Number(item.prixUnitaire) : null;
 
-    cellB.font = { name: 'Calibri', size: 10.5 };
-    cellC.font = { name: 'Calibri', size: 10.5, bold: true, color: { argb: 'FF1E3A8A' } };
-    cellD.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF1E3A8A' } };
-    cellE.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF1E3A8A' } };
+    cellB.font = { name: 'Calibri', size: 11 };
+    
+    // Taille du texte Désignation agrandie (12pt Gras Arial) pour une visibilité optimale
+    cellC.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FF1E3A8A' } };
+    cellD.font = { name: 'Calibri', size: 11.5, bold: true, color: { argb: 'FF1E3A8A' } };
+    cellE.font = { name: 'Calibri', size: 11.5, bold: true, color: { argb: 'FF1E3A8A' } };
 
     cellB.alignment = { horizontal: 'center', vertical: 'middle' };
     cellC.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
@@ -280,7 +284,7 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
 
   // 7. CHANTIER FOOTER (Bas de page A4)
   const chantierRow = startRow + maxRows;
-  sheet.getRow(chantierRow).height = 28;
+  sheet.getRow(chantierRow).height = 30;
   sheet.mergeCells(`B${chantierRow}:E${chantierRow}`);
   const chantierCell = sheet.getCell(`B${chantierRow}`);
   const chantierText = data.chantier || data.clientNom;
