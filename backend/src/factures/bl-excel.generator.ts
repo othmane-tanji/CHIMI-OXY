@@ -25,14 +25,16 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
 
   const sheet = wb.addWorksheet('Bon de Livraison');
 
-  // Configuration d'impression A4 avec marge dédiée à gauche pour barre/bande de couleur personnalisée
+  const isChimiral = (data.societe || 'OXYRAL').toUpperCase() === 'CHIMIRAL';
+
+  // Configuration d'impression A4 avec marge adaptée selon la société
   sheet.pageSetup = {
     paperSize: 9, // Format A4
     orientation: 'portrait',
     fitToPage: true,
     fitToWidth: 1,
     fitToHeight: 1,
-    horizontalCentered: false, // Alignement gauche pour préserver l'espace de la barre latérale sur la Colonne A
+    horizontalCentered: false,
     verticalCentered: true,
     margins: {
       left: 0.35,
@@ -46,12 +48,12 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
 
   sheet.views = [{ showGridLines: true }];
 
-  // Colonne A réglée à EXACTEMENT 63 PIXELS (largeur Excel 7.71)
-  sheet.getColumn('A').width = 7.71;
-  sheet.getColumn('B').width = 14;
-  sheet.getColumn('C').width = 46;
-  sheet.getColumn('D').width = 24;
-  sheet.getColumn('E').width = 24;
+  // Colonne A : 63 Pixels (7.71) pour CHIMIRAL, 13 Pixels (1.14) pour OXYRAL
+  sheet.getColumn('A').width = isChimiral ? 7.71 : 1.14;
+  sheet.getColumn('B').width = isChimiral ? 14 : 15;
+  sheet.getColumn('C').width = isChimiral ? 46 : 48;
+  sheet.getColumn('D').width = isChimiral ? 24 : 25;
+  sheet.getColumn('E').width = isChimiral ? 24 : 25;
 
   const boxBorder = {
     top: { style: 'medium' as const, color: { argb: 'FF9CA3AF' } },
@@ -78,8 +80,6 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
     pattern: 'solid' as const,
     fgColor: { argb: 'FFF3F4F6' },
   };
-
-  const isChimiral = (data.societe || 'OXYRAL') === 'CHIMIRAL';
 
   // 1. TOP RIGHT CADRE: "BON DE LIVRAISON"
   sheet.mergeCells('D2:E3');
