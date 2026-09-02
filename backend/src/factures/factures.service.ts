@@ -258,7 +258,8 @@ export class FacturesService {
         totalTtc: totaux.totalTtc,
         montantEnLettres: totaux.montantEnLettres,
         societe,
-        chantier: dto.chantier,
+        chantier: dto.afficherChantier ? dto.chantier : null,
+        afficherChantier: dto.afficherChantier ?? false,
         hasBl: dto.hasBl ?? false,
         lignes: {
           create: totaux.lignes.map((l, i) => ({
@@ -325,7 +326,8 @@ export class FacturesService {
         numeroAttach: dto.numeroAttach,
         conditionPaiement: dto.conditionPaiement,
         societe: dto.societe,
-        chantier: dto.chantier,
+        chantier: dto.afficherChantier ? dto.chantier : null,
+        afficherChantier: dto.afficherChantier ?? false,
         hasBl: dto.hasBl,
         montant: totaux.totalTtc,
         totalHt: totaux.totalHt,

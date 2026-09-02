@@ -295,17 +295,16 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
     cellE.border = rowBorder;
   }
 
-  // 7. CHANTIER FOOTER (Bas de page A4 - uniquement si coché / renseigné)
+  // 7. CHANTIER FOOTER (Bas de page A4 - uniquement si l'utilisateur a COCHÉ la case)
   const shouldShowChantier =
-    data.afficherChantier === true ||
-    (data.afficherChantier !== false && Boolean(data.chantier && data.chantier.trim()));
+    data.afficherChantier === true && Boolean(data.chantier && data.chantier.trim());
 
-  if (shouldShowChantier && data.chantier && data.chantier.trim()) {
+  if (shouldShowChantier) {
     const chantierRow = startRow + itemRowsCount;
     sheet.getRow(chantierRow).height = 32;
     sheet.mergeCells(`B${chantierRow}:E${chantierRow}`);
     const chantierCell = sheet.getCell(`B${chantierRow}`);
-    chantierCell.value = `Chantier ${data.chantier.trim()}`;
+    chantierCell.value = `Chantier ${data.chantier?.trim() || ''}`;
     chantierCell.font = { name: 'Calibri', size: 11, italic: true, bold: true, color: { argb: 'FF1F2937' } };
     chantierCell.alignment = { horizontal: 'left', vertical: 'middle' };
 

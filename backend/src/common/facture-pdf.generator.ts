@@ -160,6 +160,7 @@ export interface FacturePdfData {
   montantEnLettres: string;
   societe?: string;
   chantier?: string | null;
+  afficherChantier?: boolean;
   isBl?: boolean;
 }
 
@@ -454,9 +455,9 @@ export async function generateFactureVentePdf(
       ),
     );
   }
-  if (['MARJANE HOLDING S.A.', 'MARJANE HOLDING SA', 'MARJANE HOLDING'].includes(data.clientNom?.trim().toUpperCase()) && data.chantier) {
+  if (data.afficherChantier === true && data.chantier && data.chantier.trim()) {
     parts.push(
-      svgText(`Chantier : ${data.chantier}`, 70, F.totalHorsTaxe.y, {
+      svgText(`Chantier : ${data.chantier.trim()}`, 70, F.totalHorsTaxe.y, {
         size: 19,
         weight: 'bold',
       }),
