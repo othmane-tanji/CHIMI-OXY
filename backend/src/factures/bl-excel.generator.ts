@@ -283,11 +283,13 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
     cellD.numFmt = '#,##0.00';
     cellE.numFmt = '#,##0.00';
 
+    // BORDURES SANS LIGNES HORIZONTALES INTÉRIEURES (SEULEMENT VERTICALES + FERMETURE BAS)
+    const isLastRow = i === itemRowsCount - 1;
+
     const rowBorder = {
-      top: { style: 'thin' as const, color: { argb: 'FF9CA3AF' } },
       left: { style: 'thin' as const, color: { argb: 'FF9CA3AF' } },
       right: { style: 'thin' as const, color: { argb: 'FF9CA3AF' } },
-      bottom: { style: 'thin' as const, color: { argb: 'FF9CA3AF' } },
+      bottom: isLastRow ? { style: 'medium' as const, color: { argb: 'FF4B5563' } } : undefined,
     };
     cellB.border = rowBorder;
     cellC.border = rowBorder;
