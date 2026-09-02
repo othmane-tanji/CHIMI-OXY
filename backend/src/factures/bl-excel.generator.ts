@@ -25,7 +25,11 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
 
   const sheet = wb.addWorksheet('Bon de Livraison');
 
-  const isChimiral = (data.societe || 'OXYRAL').toUpperCase() === 'CHIMIRAL';
+  // Détection infaillible de CHIMIRAL (par champ societe, codeClient CH..., ou numéro)
+  const isChimiral =
+    (data.societe || '').toUpperCase().includes('CHIMIRAL') ||
+    (data.codeClient || '').toUpperCase().startsWith('CH') ||
+    (data.numeroBl || '').toUpperCase().includes('CHIMIRAL');
 
   // Configuration d'impression A4 avec marge adaptée selon la société
   sheet.pageSetup = {
@@ -112,7 +116,7 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
   numCell.border = thinBorder;
   numCell.fill = softFill;
 
-  // 2. CADRE ENTREPRISE (B6:C11) - OXYRAL SARL / CHIMIRAL SARL en Gras Taille 12
+  // 2. CADRE ENTREPRISE (B6:C11) - CHIMIRAL SARL / OXYRAL SARL en Gras Taille 12
   sheet.mergeCells('B6:C11');
   const compCell = sheet.getCell('B6');
   compCell.value = {
