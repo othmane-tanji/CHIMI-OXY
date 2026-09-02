@@ -154,6 +154,7 @@ model FactureVente {
   pdfPath          String?  @map("pdf_path")
   societe          String   @default("OXYRAL") @map("societe")
   chantier         String?  @map("chantier")
+  afficherChantier Boolean  @default(false) @map("afficher_chantier")
   hasBl            Boolean  @default(false) @map("has_bl")
   pdfPathBl        String?  @map("pdf_path_bl")
   createdAt        DateTime @default(now()) @map("created_at")

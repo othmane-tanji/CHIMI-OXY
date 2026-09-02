@@ -99,6 +99,10 @@ export class CreateFactureVenteDto {
 
   @IsOptional()
   @IsBoolean()
+  afficherChantier?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
   hasBl?: boolean;
 
   @IsArray()

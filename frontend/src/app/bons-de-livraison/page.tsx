@@ -38,6 +38,7 @@ const emptyVenteForm = (isChimiral = false) => {
     lignes: [emptyLigne()],
     sequenceConfig: '',
     chantier: '',
+    afficherChantier: false,
     hasBl: true,
   };
 };
@@ -175,6 +176,7 @@ export default function BonsDeLivraisonPage() {
           }))
         : [emptyLigne()],
       sequenceConfig: full.numeroFacture.split('/')[1] || '',
+      afficherChantier: full.afficherChantier ?? Boolean(full.chantier),
       hasBl: full.hasBl ?? true,
     });
     setMontantLettres(full.montantEnLettres || '');
@@ -243,7 +245,8 @@ export default function BonsDeLivraisonPage() {
         numeroAttach: formVente.numeroAttach || undefined,
         conditionPaiement: formVente.conditionPaiement || undefined,
         modeLivraison: formVente.modeLivraison || undefined,
-        chantier: formVente.chantier || undefined,
+        chantier: formVente.afficherChantier ? formVente.chantier : undefined,
+        afficherChantier: formVente.afficherChantier,
         lignes,
         societe,
         hasBl: formVente.hasBl,
@@ -479,12 +482,36 @@ export default function BonsDeLivraisonPage() {
                 <label className="label">ICE</label>
                 <input className="input" value={formVente.clientIce} onChange={(e) => setFormVente({ ...formVente, clientIce: e.target.value })} />
               </div>
-              {['MARJANE HOLDING S.A.', 'MARJANE HOLDING SA', 'MARJANE HOLDING'].includes(formVente.clientNom?.trim().toUpperCase()) && (
-                <div>
-                  <label className="label text-brand-600 font-semibold">Chantier</label>
-                  <input className="input border-brand-300 font-semibold" placeholder="Ex. Tanger" value={formVente.chantier} onChange={(e) => setFormVente({ ...formVente, chantier: e.target.value })} />
-                </div>
-              )}
+              <div className="rounded-lg border p-3 bg-gray-50 dark:bg-gray-800/40 dark:border-gray-700">
+                <label className="flex items-center gap-2 font-semibold text-gray-800 dark:text-gray-200 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formVente.afficherChantier}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setFormVente((f) => ({
+                        ...f,
+                        afficherChantier: checked,
+                        chantier: checked ? (f.chantier || f.clientNom) : '',
+                      }));
+                    }}
+                    className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                  />
+                  <span>Ajouter un Chantier sur le Bon de Livraison</span>
+                </label>
+
+                {formVente.afficherChantier && (
+                  <div className="mt-3">
+                    <label className="label text-brand-600 font-semibold">Nom / Libellé du Chantier</label>
+                    <input
+                      className="input font-semibold border-brand-300"
+                      placeholder="Ex. MARJANE TANGER CITY CENTER 115..."
+                      value={formVente.chantier}
+                      onChange={(e) => setFormVente({ ...formVente, chantier: e.target.value })}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

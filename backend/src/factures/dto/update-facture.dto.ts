@@ -84,6 +84,10 @@ export class UpdateFactureVenteDto {
 
   @IsOptional()
   @IsBoolean()
+  afficherChantier?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
   hasBl?: boolean;
 
   @IsOptional()

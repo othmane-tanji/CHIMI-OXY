@@ -11,6 +11,7 @@ export interface BlExcelData {
   conditionPaiement?: string;
   modeLivraison?: string;
   chantier?: string;
+  afficherChantier?: boolean;
   lignes: {
     code?: string;
     designation: string;
@@ -294,24 +295,29 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
     cellE.border = rowBorder;
   }
 
-  // 7. CHANTIER FOOTER (Bas de page A4)
-  const chantierRow = startRow + itemRowsCount;
-  sheet.getRow(chantierRow).height = 32;
-  sheet.mergeCells(`B${chantierRow}:E${chantierRow}`);
-  const chantierCell = sheet.getCell(`B${chantierRow}`);
-  const chantierText = data.chantier || data.clientNom;
-  chantierCell.value = `Chantier ${chantierText}`;
-  chantierCell.font = { name: 'Calibri', size: 11, italic: true, bold: true, color: { argb: 'FF1F2937' } };
-  chantierCell.alignment = { horizontal: 'left', vertical: 'middle' };
+  // 7. CHANTIER FOOTER (Bas de page A4 - uniquement si coché / renseigné)
+  const shouldShowChantier =
+    data.afficherChantier === true ||
+    (data.afficherChantier !== false && Boolean(data.chantier && data.chantier.trim()));
 
-  const footerBorder = {
-    top: { style: 'thin' as const, color: { argb: 'FF1F2937' } },
-    left: { style: 'medium' as const, color: { argb: 'FF1F2937' } },
-    bottom: { style: 'medium' as const, color: { argb: 'FF1F2937' } },
-    right: { style: 'medium' as const, color: { argb: 'FF1F2937' } },
-  };
-  for (const col of ['B', 'C', 'D', 'E']) {
-    sheet.getCell(`${col}${chantierRow}`).border = footerBorder;
+  if (shouldShowChantier && data.chantier && data.chantier.trim()) {
+    const chantierRow = startRow + itemRowsCount;
+    sheet.getRow(chantierRow).height = 32;
+    sheet.mergeCells(`B${chantierRow}:E${chantierRow}`);
+    const chantierCell = sheet.getCell(`B${chantierRow}`);
+    chantierCell.value = `Chantier ${data.chantier.trim()}`;
+    chantierCell.font = { name: 'Calibri', size: 11, italic: true, bold: true, color: { argb: 'FF1F2937' } };
+    chantierCell.alignment = { horizontal: 'left', vertical: 'middle' };
+
+    const footerBorder = {
+      top: { style: 'thin' as const, color: { argb: 'FF1F2937' } },
+      left: { style: 'medium' as const, color: { argb: 'FF1F2937' } },
+      bottom: { style: 'medium' as const, color: { argb: 'FF1F2937' } },
+      right: { style: 'medium' as const, color: { argb: 'FF1F2937' } },
+    };
+    for (const col of ['B', 'C', 'D', 'E']) {
+      sheet.getCell(`${col}${chantierRow}`).border = footerBorder;
+    }
   }
 
   const buffer = await wb.xlsx.writeBuffer();

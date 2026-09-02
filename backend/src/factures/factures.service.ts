@@ -418,6 +418,7 @@ export class FacturesService {
       montantEnLettres: facture.montantEnLettres,
       societe: facture.societe,
       chantier: facture.chantier,
+      afficherChantier: facture.afficherChantier,
     };
   }
 
@@ -460,6 +461,7 @@ export class FacturesService {
       conditionPaiement: facture.conditionPaiement ?? '60 JRs de la réception de facture',
       modeLivraison: facture.modeLivraison ?? 'Par nos soins',
       chantier: facture.chantier ?? undefined,
+      afficherChantier: facture.afficherChantier,
       lignes: facture.lignes.map((l) => ({
         code: undefined,
         designation: l.designation,
