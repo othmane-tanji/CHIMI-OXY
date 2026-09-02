@@ -432,13 +432,19 @@ export default function FacturesPage() {
                       {f.hasBl && (
                         <>
                           <button
-                            onClick={() => facturesApi.downloadVenteBlPdf(f.id, `bon-livraison-${f.numeroFacture.replace(/\//g, '-')}.pdf`)}
+                            onClick={() => {
+                              const soc = (f.societe || (tab.includes('chimiral') ? 'chimiral' : 'oxyral')).toLowerCase();
+                              facturesApi.downloadVenteBlPdf(f.id, `bon-livraison-${soc}-${f.numeroFacture.replace(/\//g, '-')}.pdf`);
+                            }}
                             className="inline-flex items-center gap-1 text-blue-600 hover:underline text-xs font-medium"
                           >
                             <FileDown size={14} /> BL PDF
                           </button>
                           <button
-                            onClick={() => facturesApi.downloadVenteBlExcel(f.id, `bon-livraison-${f.numeroFacture.replace(/\//g, '-')}.xlsx`)}
+                            onClick={() => {
+                              const soc = (f.societe || (tab.includes('chimiral') ? 'chimiral' : 'oxyral')).toLowerCase();
+                              facturesApi.downloadVenteBlExcel(f.id, `bon-livraison-${soc}-${f.numeroFacture.replace(/\//g, '-')}.xlsx`);
+                            }}
                             className="inline-flex items-center gap-1 rounded bg-emerald-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-700 shadow-sm transition-colors"
                           >
                             <FileDown size={14} /> BL Excel

@@ -256,9 +256,10 @@ export default function BonsDeLivraisonPage() {
       load();
 
       if (saved?.id) {
+        const soc = (saved.societe || societe).toLowerCase();
         await facturesApi.downloadVenteBlExcel(
           saved.id,
-          `bon-livraison-${saved.numeroFacture.replace(/\//g, '-')}.xlsx`,
+          `bon-livraison-${soc}-${saved.numeroFacture.replace(/\//g, '-')}.xlsx`,
         );
       }
     } catch (err: any) {
@@ -358,7 +359,10 @@ export default function BonsDeLivraisonPage() {
                       <FileDown size={14} /> PDF
                     </button>
                     <button
-                      onClick={() => facturesApi.downloadVenteBlExcel(f.id, `bon-livraison-${f.numeroFacture.replace(/\//g, '-')}.xlsx`)}
+                      onClick={() => {
+                        const soc = (f.societe || (tab === 'bl-chimiral' ? 'chimiral' : 'oxyral')).toLowerCase();
+                        facturesApi.downloadVenteBlExcel(f.id, `bon-livraison-${soc}-${f.numeroFacture.replace(/\//g, '-')}.xlsx`);
+                      }}
                       className="inline-flex items-center gap-1 rounded bg-emerald-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-700 shadow-sm transition-colors"
                     >
                       <FileDown size={14} /> BL Excel
@@ -634,7 +638,10 @@ export default function BonsDeLivraisonPage() {
             </table>
             <div className="flex justify-end gap-2">
               <button
-                onClick={() => facturesApi.downloadVenteBlExcel(detailModal.id, `bon-livraison-${detailModal.numeroFacture.replace(/\//g, '-')}.xlsx`)}
+                onClick={() => {
+                  const soc = (detailModal.societe || 'oxyral').toLowerCase();
+                  facturesApi.downloadVenteBlExcel(detailModal.id, `bon-livraison-${soc}-${detailModal.numeroFacture.replace(/\//g, '-')}.xlsx`);
+                }}
                 className="btn-primary bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-2"
               >
                 <FileDown size={16} /> Télécharger BL Excel
