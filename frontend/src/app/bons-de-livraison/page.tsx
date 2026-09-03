@@ -356,12 +356,6 @@ export default function BonsDeLivraisonPage() {
                 <td className="table-td">
                   <div className="flex flex-wrap items-center gap-2">
                     <button
-                      onClick={() => handleDownload(f)}
-                      className="inline-flex items-center gap-1 text-brand-600 hover:underline text-xs font-medium"
-                    >
-                      <FileDown size={14} /> PDF
-                    </button>
-                    <button
                       onClick={() => {
                         const soc = (f.societe || (tab === 'bl-chimiral' ? 'chimiral' : 'oxyral')).toLowerCase();
                         facturesApi.downloadVenteBlExcel(f.id, `bon-livraison-${soc}-${f.numeroFacture.replace(/\//g, '-')}.xlsx`);
@@ -621,7 +615,7 @@ export default function BonsDeLivraisonPage() {
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={() => setModal(false)} className="btn-secondary">Annuler</button>
             <button type="submit" className="btn-primary">
-              {editId ? 'Enregistrer & regénérer PDF' : 'Créer & télécharger BL PDF'}
+              {editId ? 'Enregistrer' : 'Créer & télécharger BL Excel'}
             </button>
           </div>
         </form>
@@ -672,12 +666,6 @@ export default function BonsDeLivraisonPage() {
                 className="btn-primary bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-2"
               >
                 <FileDown size={16} /> Télécharger BL Excel
-              </button>
-              <button
-                onClick={() => handleDownload(detailModal)}
-                className="btn-secondary flex items-center gap-2"
-              >
-                <FileDown size={16} /> Télécharger BL PDF
               </button>
             </div>
           </div>

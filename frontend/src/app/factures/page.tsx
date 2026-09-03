@@ -312,9 +312,9 @@ export default function FacturesPage() {
       load();
       if (saved?.id) {
         const societeName = (saved.societe || 'oxyral').toLowerCase();
-        await facturesApi.downloadVentePdf(
+        await facturesApi.downloadVenteExcel(
           saved.id,
-          `facture-${societeName}-${saved.numeroFacture.replace(/\//g, '-')}.pdf`,
+          `facture-${societeName}-${saved.numeroFacture.replace(/\//g, '-')}.xlsx`,
         );
       }
     } catch (err: any) {
@@ -439,41 +439,24 @@ export default function FacturesPage() {
                   {isVente ? (
                     <div className="flex flex-wrap items-center gap-2">
                       <button
-                        onClick={() => handleDownload(f)}
-                        className="inline-flex items-center gap-1 text-brand-600 hover:underline text-xs font-medium"
-                      >
-                        <FileDown size={14} /> PDF
-                      </button>
-                      <button
                         onClick={() => {
                           const soc = (f.societe || (tab.includes('chimiral') ? 'chimiral' : 'oxyral')).toLowerCase();
                           facturesApi.downloadVenteExcel(f.id, `facture-${soc}-${f.numeroFacture.replace(/\//g, '-')}.xlsx`);
                         }}
                         className="inline-flex items-center gap-1 rounded bg-emerald-700 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-800 shadow-sm transition-colors"
                       >
-                        <FileDown size={14} /> Excel
+                        <FileDown size={14} /> Facture Excel
                       </button>
                       {f.hasBl && (
-                        <>
-                          <button
-                            onClick={() => {
-                              const soc = (f.societe || (tab.includes('chimiral') ? 'chimiral' : 'oxyral')).toLowerCase();
-                              facturesApi.downloadVenteBlPdf(f.id, `bon-livraison-${soc}-${f.numeroFacture.replace(/\//g, '-')}.pdf`);
-                            }}
-                            className="inline-flex items-center gap-1 text-blue-600 hover:underline text-xs font-medium"
-                          >
-                            <FileDown size={14} /> BL PDF
-                          </button>
-                          <button
-                            onClick={() => {
-                              const soc = (f.societe || (tab.includes('chimiral') ? 'chimiral' : 'oxyral')).toLowerCase();
-                              facturesApi.downloadVenteBlExcel(f.id, `bon-livraison-${soc}-${f.numeroFacture.replace(/\//g, '-')}.xlsx`);
-                            }}
-                            className="inline-flex items-center gap-1 rounded bg-emerald-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-700 shadow-sm transition-colors"
-                          >
-                            <FileDown size={14} /> BL Excel
-                          </button>
-                        </>
+                        <button
+                          onClick={() => {
+                            const soc = (f.societe || (tab.includes('chimiral') ? 'chimiral' : 'oxyral')).toLowerCase();
+                            facturesApi.downloadVenteBlExcel(f.id, `bon-livraison-${soc}-${f.numeroFacture.replace(/\//g, '-')}.xlsx`);
+                          }}
+                          className="inline-flex items-center gap-1 rounded bg-emerald-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-700 shadow-sm transition-colors"
+                        >
+                          <FileDown size={14} /> BL Excel
+                        </button>
                       )}
                     </div>
                   ) : (
@@ -905,23 +888,23 @@ export default function FacturesPage() {
             )}
             <div className="flex justify-end gap-2">
               <button
-                onClick={() => handleDownload(detailModal)}
-                className="btn-primary flex items-center gap-2"
+                onClick={() => {
+                  const soc = (detailModal.societe || 'oxyral').toLowerCase();
+                  facturesApi.downloadVenteExcel(detailModal.id, `facture-${soc}-${detailModal.numeroFacture.replace(/\//g, '-')}.xlsx`);
+                }}
+                className="btn-primary bg-emerald-700 hover:bg-emerald-800 text-white flex items-center gap-2"
               >
-                <FileDown size={16} /> Télécharger PDF
+                <FileDown size={16} /> Télécharger Facture Excel
               </button>
               {detailModal.hasBl && (
                 <button
-                  onClick={async () => {
-                    const societeName = (detailModal.societe || 'oxyral').toLowerCase();
-                    await facturesApi.downloadVenteBlPdf(
-                      detailModal.id,
-                      `bon-livraison-${societeName}-${detailModal.numeroFacture.replace(/\//g, '-')}.pdf`,
-                    );
+                  onClick={() => {
+                    const soc = (detailModal.societe || 'oxyral').toLowerCase();
+                    facturesApi.downloadVenteBlExcel(detailModal.id, `bon-livraison-${soc}-${detailModal.numeroFacture.replace(/\//g, '-')}.xlsx`);
                   }}
-                  className="btn-secondary flex items-center gap-2"
+                  className="btn-secondary bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-2"
                 >
-                  <FileDown size={16} /> Télécharger Bon de livraison
+                  <FileDown size={16} /> Télécharger BL Excel
                 </button>
               )}
             </div>
