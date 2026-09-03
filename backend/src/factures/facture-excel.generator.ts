@@ -241,8 +241,9 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
     sheet.getCell('E15').border = thinBorder;
     sheet.getCell('E15').fill = softFill;
 
-    const fifthTitle = (data.typeEntetePaiement === 'RIB') ? 'RIB' : 'Conditions de payement';
-    const fifthVal = (data.typeEntetePaiement === 'RIB')
+    const isRib = (data.typeEntetePaiement || '').toUpperCase() === 'RIB';
+    const fifthTitle = isRib ? 'RIB' : 'Conditions de payement';
+    const fifthVal = isRib
       ? (data.valeurEntetePaiement || data.rib || '')
       : (data.valeurEntetePaiement || data.conditionPaiement || '60 JRs de la réception de facture');
 
