@@ -351,8 +351,20 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
   const totalTva = data.totalTva ?? totalHt * 0.2;
   const totalTtc = data.totalTtc ?? totalHt + totalTva;
 
-  // A) TOTAL HORS TAXE BOX (Col D & E merged for title, Col F for amount)
+  // A) CHANTIER (Col B & C) + TOTAL HORS TAXE BOX (Col D & E title, Col F amount)
   sheet.getRow(totRow).height = 36;
+
+  if (data.afficherChantier === true && data.chantier && data.chantier.trim()) {
+    sheet.mergeCells(`B${totRow}:C${totRow}`);
+    const chantierCell = sheet.getCell(`B${totRow}`);
+    chantierCell.value = `Chantier ${data.chantier.trim()}`;
+    chantierCell.font = { name: 'Calibri', size: 11, italic: true, bold: true, color: { argb: 'FF1F2937' } };
+    chantierCell.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
+    ['B', 'C'].forEach((col) => {
+      sheet.getCell(`${col}${totRow}`).border = boxBorder;
+    });
+  }
+
   sheet.mergeCells(`D${totRow}:E${totRow}`);
   const thtTitle = sheet.getCell(`D${totRow}`);
   thtTitle.value = 'TOTAL HORS TAXE';
@@ -444,18 +456,6 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
     lettCell.value = `Arrêté la présente facture à la somme de : ${data.montantEnLettres}`;
     lettCell.font = { name: 'Calibri', size: 11, italic: true, bold: true, color: { argb: 'FF1F2937' } };
     lettCell.alignment = { horizontal: 'left', vertical: 'middle' };
-    ['B', 'C', 'D', 'E', 'F'].forEach((col) => (sheet.getCell(`${col}${totRow}`).border = boxBorder));
-  }
-
-  // E) CHANTIER FOOTER (Si coché)
-  if (data.afficherChantier === true && data.chantier && data.chantier.trim()) {
-    totRow++;
-    sheet.getRow(totRow).height = 32;
-    sheet.mergeCells(`B${totRow}:F${totRow}`);
-    const chantierCell = sheet.getCell(`B${totRow}`);
-    chantierCell.value = `Chantier ${data.chantier.trim()}`;
-    chantierCell.font = { name: 'Calibri', size: 11, italic: true, bold: true, color: { argb: 'FF1F2937' } };
-    chantierCell.alignment = { horizontal: 'left', vertical: 'middle' };
     ['B', 'C', 'D', 'E', 'F'].forEach((col) => (sheet.getCell(`${col}${totRow}`).border = boxBorder));
   }
 
