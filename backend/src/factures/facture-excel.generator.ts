@@ -241,11 +241,20 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
     sheet.getCell('E15').border = thinBorder;
     sheet.getCell('E15').fill = softFill;
 
-    const isRib = (data.typeEntetePaiement || '').toUpperCase() === 'RIB';
-    const fifthTitle = isRib ? 'RIB' : 'Conditions de payement';
-    const fifthVal = isRib
-      ? (data.valeurEntetePaiement || data.rib || '')
-      : (data.valeurEntetePaiement || data.conditionPaiement || '60 JRs de la réception de facture');
+    const typeUpper = (data.typeEntetePaiement || '').toUpperCase();
+    let fifthTitle = 'Conditions de payement';
+    if (typeUpper === 'RIB') {
+      fifthTitle = 'RIB';
+    } else if (typeUpper === 'MODE' || typeUpper === 'MODE DE PAIEMENT') {
+      fifthTitle = 'Mode de paiement';
+    }
+
+    let fifthVal = data.valeurEntetePaiement || data.conditionPaiement || '60 JRs de la réception de facture';
+    if (typeUpper === 'RIB') {
+      fifthVal = data.valeurEntetePaiement || data.rib || '';
+    } else if (typeUpper === 'MODE' || typeUpper === 'MODE DE PAIEMENT') {
+      fifthVal = data.valeurEntetePaiement || 'Virement bancaire';
+    }
 
     sheet.getCell('F13').value = fifthTitle;
     sheet.getCell('F13').font = headerFont;

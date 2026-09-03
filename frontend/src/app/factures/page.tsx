@@ -701,13 +701,13 @@ export default function FacturesPage() {
 
                 <div>
                   <label className="label font-medium">Titre du 5ème champ d'en-tête Excel</label>
-                  <div className="flex items-center gap-4 py-1">
+                  <div className="flex flex-wrap items-center gap-4 py-1">
                     <label className="flex items-center gap-1.5 text-xs font-semibold cursor-pointer">
                       <input
                         type="radio"
                         name="typeEntetePaiement"
                         value="CONDITION"
-                        checked={formVente.typeEntetePaiement !== 'RIB'}
+                        checked={formVente.typeEntetePaiement !== 'RIB' && formVente.typeEntetePaiement !== 'MODE'}
                         onChange={() => setFormVente({ ...formVente, typeEntetePaiement: 'CONDITION' })}
                         className="text-brand-600"
                       />
@@ -724,10 +724,27 @@ export default function FacturesPage() {
                       />
                       <span>RIB</span>
                     </label>
+                    <label className="flex items-center gap-1.5 text-xs font-semibold cursor-pointer">
+                      <input
+                        type="radio"
+                        name="typeEntetePaiement"
+                        value="MODE"
+                        checked={formVente.typeEntetePaiement === 'MODE'}
+                        onChange={() => setFormVente({ ...formVente, typeEntetePaiement: 'MODE' })}
+                        className="text-brand-600"
+                      />
+                      <span>Mode de paiement</span>
+                    </label>
                   </div>
                   <input
                     className="input mt-1"
-                    placeholder={formVente.typeEntetePaiement === 'RIB' ? 'Ex. 007 780 0001234567890123 45' : 'Ex. 60 JRs de la réception de facture'}
+                    placeholder={
+                      formVente.typeEntetePaiement === 'RIB'
+                        ? 'Ex. 007 780 0001234567890123 45'
+                        : formVente.typeEntetePaiement === 'MODE'
+                        ? 'Ex. Virement bancaire, Chèque, Traite...'
+                        : 'Ex. 60 JRs de la réception de facture'
+                    }
                     value={formVente.valeurEntetePaiement}
                     onChange={(e) => setFormVente({ ...formVente, valeurEntetePaiement: e.target.value })}
                   />
