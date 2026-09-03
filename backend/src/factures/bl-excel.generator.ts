@@ -1,4 +1,5 @@
 import * as ExcelJS from 'exceljs';
+import { formatMontantFacture } from '../common/facture.utils';
 
 export interface BlExcelData {
   numeroBl: string;
@@ -265,8 +266,8 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
 
     cellB.value = item?.code || '';
     cellC.value = item?.designation || '';
-    cellD.value = item ? Number(item.quantite) : null;
-    cellE.value = item ? Number(item.prixUnitaire) : null;
+    cellD.value = item ? formatMontantFacture(item.quantite) : '';
+    cellE.value = item ? formatMontantFacture(item.prixUnitaire) : '';
 
     cellB.font = { name: 'Calibri', size: 11 };
     
@@ -279,9 +280,6 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
     cellC.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
     cellD.alignment = { horizontal: 'right', vertical: 'middle' };
     cellE.alignment = { horizontal: 'right', vertical: 'middle' };
-
-    cellD.numFmt = '#.##0,00';
-    cellE.numFmt = '#.##0,00';
 
     // BORDURES SANS LIGNES HORIZONTALES INTÉRIEURES (SEULEMENT VERTICALES + FERMETURE BAS)
     const isLastRow = i === itemRowsCount - 1;
