@@ -69,10 +69,10 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
   sheet.getColumn('F').width = 22; // Montant HT
 
   const boxBorder = {
-    top: { style: 'medium' as const, color: { argb: 'FF9CA3AF' } },
-    left: { style: 'medium' as const, color: { argb: 'FF9CA3AF' } },
-    bottom: { style: 'medium' as const, color: { argb: 'FF9CA3AF' } },
-    right: { style: 'medium' as const, color: { argb: 'FF9CA3AF' } },
+    top: { style: 'medium' as const, color: { argb: 'FF1F2937' } },
+    left: { style: 'medium' as const, color: { argb: 'FF1F2937' } },
+    bottom: { style: 'medium' as const, color: { argb: 'FF1F2937' } },
+    right: { style: 'medium' as const, color: { argb: 'FF1F2937' } },
   };
 
   const thinBorder = {
@@ -91,7 +91,7 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
   const headerFill = {
     type: 'pattern' as const,
     pattern: 'solid' as const,
-    fgColor: { argb: 'FFF3F4F6' },
+    fgColor: { argb: 'FFE5E7EB' },
   };
 
   // 1. TOP RIGHT CADRE: "FACTURE"
@@ -177,7 +177,7 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
   sheet.getCell('B13').border = thinBorder;
   sheet.getCell('B13').fill = headerFill;
 
-  sheet.getCell('B15').value = data.codeClient || (isChimiral ? 'CH704' : '601');
+  sheet.getCell('B15').value = data.codeClient || (isChimiral ? 'CH704' : 'OX704');
   sheet.getCell('B15').font = valFont;
   sheet.getCell('B15').alignment = { horizontal: 'center', vertical: 'middle' };
   sheet.getCell('B15').border = thinBorder;
@@ -210,7 +210,6 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
   sheet.getCell('D15').fill = softFill;
 
   if (isMarjaneOrPrimarios) {
-    // Si MARJANE ou PRIMARIOS : E & F fusionnés pour "Conditions de payement"
     sheet.mergeCells('E13:F13');
     const m4Title = sheet.getCell('E13');
     m4Title.value = 'Conditions de payement';
@@ -229,7 +228,6 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
     sheet.getCell('E15').border = thinBorder;
     sheet.getCell('F15').border = thinBorder;
   } else {
-    // Si AUTRE CLIENT : 5 colonnes séparées (E13/E15 = Délai de paiement, F13/F15 = RIB ou Conditions de paiement)
     sheet.getCell('E13').value = 'Délai de paiement';
     sheet.getCell('E13').font = headerFont;
     sheet.getCell('E13').alignment = { horizontal: 'center', vertical: 'middle' };
@@ -263,7 +261,7 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
   sheet.getRow(13).height = 22;
   sheet.getRow(15).height = 26;
 
-  // 5. TABLE HEADER (Row 18)
+  // 5. TABLE HEADER (Row 18) - Exact match with user screenshot media_1788443579535.png
   const thRow = 18;
   sheet.getRow(thRow).height = 32;
 
@@ -274,14 +272,13 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
     bottom: { style: 'medium' as const, color: { argb: 'FF4B5563' } },
     right: { style: 'thin' as const, color: { argb: 'FF4B5563' } },
   };
-  const thFill = { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FFE5E7EB' } };
 
   const headers = [
     { col: 'B', text: 'CODE' },
     { col: 'C', text: 'Désignations' },
     { col: 'D', text: 'Qté' },
-    { col: 'E', text: 'P.U HT' },
-    { col: 'F', text: 'MONTANT HT' },
+    { col: 'E', text: 'Prix Unitaire' },
+    { col: 'F', text: 'Montant HT' },
   ];
 
   headers.forEach((h) => {
@@ -290,7 +287,7 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
     cell.font = thFont;
     cell.alignment = { horizontal: 'center', vertical: 'middle' };
     cell.border = thBorder;
-    cell.fill = thFill;
+    cell.fill = headerFill;
   });
 
   // 6. TABLE BODY (Bordures sans lignes horizontales intérieures)
@@ -347,51 +344,100 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
     [cellB, cellC, cellD, cellE, cellF].forEach((c) => (c.border = rowBorder));
   }
 
-  // 7. TOTALS SECTION
+  // 7. TOTALS SECTION (Exact match with user screenshot media_1788443579535.png)
   let totRow = startRow + itemRowsCount;
 
   const totalHt = data.totalHt ?? lignes.reduce((s, l) => s + Number(l.quantite || 0) * Number(l.prixUnitaire || 0), 0);
   const totalTva = data.totalTva ?? totalHt * 0.2;
   const totalTtc = data.totalTtc ?? totalHt + totalTva;
 
-  // TOTAL HORS TAXE
-  sheet.getRow(totRow).height = 24;
-  sheet.getCell(`E${totRow}`).value = 'TOTAL HORS TAXE';
-  sheet.getCell(`E${totRow}`).font = { name: 'Arial', size: 11, bold: true };
-  sheet.getCell(`E${totRow}`).alignment = { horizontal: 'right', vertical: 'middle' };
-  sheet.getCell(`F${totRow}`).value = totalHt;
-  sheet.getCell(`F${totRow}`).numFmt = '#,##0.00';
-  sheet.getCell(`F${totRow}`).font = { name: 'Calibri', size: 11, bold: true };
-  sheet.getCell(`F${totRow}`).alignment = { horizontal: 'right', vertical: 'middle' };
-  [sheet.getCell(`E${totRow}`), sheet.getCell(`F${totRow}`)].forEach((c) => (c.border = thinBorder));
+  // A) TOTAL HORS TAXE BOX (Col D & E merged for title, Col F for amount)
+  sheet.getRow(totRow).height = 36;
+  sheet.mergeCells(`D${totRow}:E${totRow}`);
+  const thtTitle = sheet.getCell(`D${totRow}`);
+  thtTitle.value = 'TOTAL HORS TAXE';
+  thtTitle.font = { name: 'Arial', size: 14, bold: true, color: { argb: 'FF1F2937' } };
+  thtTitle.alignment = { horizontal: 'center', vertical: 'middle' };
+  thtTitle.fill = headerFill;
 
-  totRow++;
-  // T.V.A 20%
-  sheet.getRow(totRow).height = 24;
-  sheet.getCell(`E${totRow}`).value = 'T.V.A 20%';
-  sheet.getCell(`E${totRow}`).font = { name: 'Arial', size: 11, bold: true };
-  sheet.getCell(`E${totRow}`).alignment = { horizontal: 'right', vertical: 'middle' };
-  sheet.getCell(`F${totRow}`).value = totalTva;
-  sheet.getCell(`F${totRow}`).numFmt = '#,##0.00';
-  sheet.getCell(`F${totRow}`).font = { name: 'Calibri', size: 11, bold: true };
-  sheet.getCell(`F${totRow}`).alignment = { horizontal: 'right', vertical: 'middle' };
-  [sheet.getCell(`E${totRow}`), sheet.getCell(`F${totRow}`)].forEach((c) => (c.border = thinBorder));
+  const thtVal = sheet.getCell(`F${totRow}`);
+  thtVal.value = totalHt;
+  thtVal.numFmt = '#,##0.00';
+  thtVal.font = { name: 'Arial', size: 14, bold: true, color: { argb: 'FF111827' } };
+  thtVal.alignment = { horizontal: 'right', vertical: 'middle' };
 
-  totRow++;
-  // TOTAL T.T.C EN DHS
+  ['D', 'E', 'F'].forEach((col) => {
+    sheet.getCell(`${col}${totRow}`).border = boxBorder;
+  });
+
+  totRow += 2; // Jump to next summary row
+
+  // B) 3-SUMMARY HEADERS BAR (TOTAL HT | TVA 20% | TOTAL TTC EN DHS)
   sheet.getRow(totRow).height = 28;
-  sheet.getCell(`E${totRow}`).value = 'TOTAL T.T.C EN DHS';
-  sheet.getCell(`E${totRow}`).font = { name: 'Arial', size: 11.5, bold: true, color: { argb: 'FF1E3A8A' } };
-  sheet.getCell(`E${totRow}`).alignment = { horizontal: 'right', vertical: 'middle' };
-  sheet.getCell(`F${totRow}`).value = totalTtc;
-  sheet.getCell(`F${totRow}`).numFmt = '#,##0.00';
-  sheet.getCell(`F${totRow}`).font = { name: 'Calibri', size: 12, bold: true, color: { argb: 'FF1E3A8A' } };
-  sheet.getCell(`F${totRow}`).alignment = { horizontal: 'right', vertical: 'middle' };
-  [sheet.getCell(`E${totRow}`), sheet.getCell(`F${totRow}`)].forEach((c) => (c.border = boxBorder));
+  
+  // 1. TOTAL HT Header (B & C merged)
+  sheet.mergeCells(`B${totRow}:C${totRow}`);
+  const hTotalHt = sheet.getCell(`B${totRow}`);
+  hTotalHt.value = 'TOTAL HT';
+  hTotalHt.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FF1F2937' } };
+  hTotalHt.alignment = { horizontal: 'center', vertical: 'middle' };
+  hTotalHt.fill = headerFill;
+  sheet.getCell(`B${totRow}`).border = boxBorder;
+  sheet.getCell(`C${totRow}`).border = boxBorder;
 
-  // Montant en lettres
+  // 2. TVA 20% Header (D)
+  const hTva = sheet.getCell(`D${totRow}`);
+  hTva.value = 'TVA 20%';
+  hTva.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FF1F2937' } };
+  hTva.alignment = { horizontal: 'center', vertical: 'middle' };
+  hTva.fill = headerFill;
+  hTva.border = boxBorder;
+
+  // 3. TOTAL TTC EN DHS Header (E & F merged)
+  sheet.mergeCells(`E${totRow}:F${totRow}`);
+  const hTtc = sheet.getCell(`E${totRow}`);
+  hTtc.value = 'TOTAL TTC EN DHS';
+  hTtc.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FF1F2937' } };
+  hTtc.alignment = { horizontal: 'center', vertical: 'middle' };
+  hTtc.fill = headerFill;
+  sheet.getCell(`E${totRow}`).border = boxBorder;
+  sheet.getCell(`F${totRow}`).border = boxBorder;
+
+  // C) 3-SUMMARY VALUES ROW
+  totRow++;
+  sheet.getRow(totRow).height = 32;
+
+  // Value 1: TOTAL HT (B & C merged)
+  sheet.mergeCells(`B${totRow}:C${totRow}`);
+  const vTotalHt = sheet.getCell(`B${totRow}`);
+  vTotalHt.value = totalHt;
+  vTotalHt.numFmt = '#,##0.00';
+  vTotalHt.font = { name: 'Calibri', size: 13, bold: true, color: { argb: 'FF111827' } };
+  vTotalHt.alignment = { horizontal: 'center', vertical: 'middle' };
+  sheet.getCell(`B${totRow}`).border = boxBorder;
+  sheet.getCell(`C${totRow}`).border = boxBorder;
+
+  // Value 2: TVA 20% (D)
+  const vTva = sheet.getCell(`D${totRow}`);
+  vTva.value = totalTva;
+  vTva.numFmt = '#,##0.00';
+  vTva.font = { name: 'Calibri', size: 13, bold: true, color: { argb: 'FF111827' } };
+  vTva.alignment = { horizontal: 'center', vertical: 'middle' };
+  vTva.border = boxBorder;
+
+  // Value 3: TOTAL TTC EN DHS (E & F merged)
+  sheet.mergeCells(`E${totRow}:F${totRow}`);
+  const vTtc = sheet.getCell(`E${totRow}`);
+  vTtc.value = totalTtc;
+  vTtc.numFmt = '#,##0.00';
+  vTtc.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FF1E3A8A' } };
+  vTtc.alignment = { horizontal: 'center', vertical: 'middle' };
+  sheet.getCell(`E${totRow}`).border = boxBorder;
+  sheet.getCell(`F${totRow}`).border = boxBorder;
+
+  // D) ARRÊTÉ LA PRÉSENTE FACTURE À LA SOMME DE
   if (data.montantEnLettres) {
-    totRow++;
+    totRow += 2;
     sheet.getRow(totRow).height = 32;
     sheet.mergeCells(`B${totRow}:F${totRow}`);
     const lettCell = sheet.getCell(`B${totRow}`);
@@ -401,7 +447,7 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
     ['B', 'C', 'D', 'E', 'F'].forEach((col) => (sheet.getCell(`${col}${totRow}`).border = boxBorder));
   }
 
-  // 8. CHANTIER FOOTER (Si coché)
+  // E) CHANTIER FOOTER (Si coché)
   if (data.afficherChantier === true && data.chantier && data.chantier.trim()) {
     totRow++;
     sheet.getRow(totRow).height = 32;
