@@ -280,8 +280,8 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
     { col: 'B', text: 'CODE' },
     { col: 'C', text: 'Désignations' },
     { col: 'D', text: 'Qté' },
-    { col: 'E', text: 'Prix Unitaire' },
-    { col: 'F', text: 'Montant HT' },
+    { col: 'E', text: 'P.U HT' },
+    { col: 'F', text: 'MONTANT HT' },
   ];
 
   headers.forEach((h) => {
@@ -354,9 +354,9 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
   const totalTva = data.totalTva ?? totalHt * 0.2;
   const totalTtc = data.totalTtc ?? totalHt + totalTva;
 
-  // Total HT
+  // TOTAL HORS TAXE
   sheet.getRow(totRow).height = 24;
-  sheet.getCell(`E${totRow}`).value = 'Total H.T';
+  sheet.getCell(`E${totRow}`).value = 'TOTAL HORS TAXE';
   sheet.getCell(`E${totRow}`).font = { name: 'Arial', size: 11, bold: true };
   sheet.getCell(`E${totRow}`).alignment = { horizontal: 'right', vertical: 'middle' };
   sheet.getCell(`F${totRow}`).value = totalHt;
@@ -366,7 +366,7 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
   [sheet.getCell(`E${totRow}`), sheet.getCell(`F${totRow}`)].forEach((c) => (c.border = thinBorder));
 
   totRow++;
-  // TVA
+  // T.V.A 20%
   sheet.getRow(totRow).height = 24;
   sheet.getCell(`E${totRow}`).value = 'T.V.A 20%';
   sheet.getCell(`E${totRow}`).font = { name: 'Arial', size: 11, bold: true };
@@ -378,10 +378,10 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
   [sheet.getCell(`E${totRow}`), sheet.getCell(`F${totRow}`)].forEach((c) => (c.border = thinBorder));
 
   totRow++;
-  // Total TTC
+  // TOTAL T.T.C EN DHS
   sheet.getRow(totRow).height = 28;
-  sheet.getCell(`E${totRow}`).value = 'Total T.T.C';
-  sheet.getCell(`E${totRow}`).font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FF1E3A8A' } };
+  sheet.getCell(`E${totRow}`).value = 'TOTAL T.T.C EN DHS';
+  sheet.getCell(`E${totRow}`).font = { name: 'Arial', size: 11.5, bold: true, color: { argb: 'FF1E3A8A' } };
   sheet.getCell(`E${totRow}`).alignment = { horizontal: 'right', vertical: 'middle' };
   sheet.getCell(`F${totRow}`).value = totalTtc;
   sheet.getCell(`F${totRow}`).numFmt = '#,##0.00';

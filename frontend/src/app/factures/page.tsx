@@ -302,7 +302,7 @@ export default function FacturesPage() {
         afficherChantier: formVente.afficherChantier,
         lignes,
         societe,
-        hasBl: formVente.hasBl,
+        hasBl: true,
       };
       let saved;
       if (editId) saved = await facturesApi.updateVente(editId, payload);
