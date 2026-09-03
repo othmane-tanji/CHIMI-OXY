@@ -280,8 +280,8 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
     cellD.alignment = { horizontal: 'right', vertical: 'middle' };
     cellE.alignment = { horizontal: 'right', vertical: 'middle' };
 
-    cellD.numFmt = '#,##0.00';
-    cellE.numFmt = '#,##0.00';
+    cellD.numFmt = '#.##0,00';
+    cellE.numFmt = '#.##0,00';
 
     // BORDURES SANS LIGNES HORIZONTALES INTÉRIEURES (SEULEMENT VERTICALES + FERMETURE BAS)
     const isLastRow = i === itemRowsCount - 1;

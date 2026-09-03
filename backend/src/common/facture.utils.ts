@@ -22,10 +22,10 @@ export interface FactureTotaux {
 }
 
 export function formatMontantFacture(n: number): string {
-  return n.toLocaleString('fr-FR', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  if (n === null || n === undefined || isNaN(n)) return '0,00';
+  const parts = Number(n).toFixed(2).split('.');
+  const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return `${integerPart},${parts[1]}`;
 }
 
 export function formatDateFacture(date: Date | string): string {

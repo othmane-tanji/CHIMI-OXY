@@ -330,9 +330,9 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
     cellE.alignment = { horizontal: 'right', vertical: 'middle' };
     cellF.alignment = { horizontal: 'right', vertical: 'middle' };
 
-    cellD.numFmt = '#,##0.00';
-    cellE.numFmt = '#,##0.00';
-    cellF.numFmt = '#,##0.00';
+    cellD.numFmt = '#.##0,00';
+    cellE.numFmt = '#.##0,00';
+    cellF.numFmt = '#.##0,00';
 
     const isLastRow = i === itemRowsCount - 1;
     const rowBorder = {
@@ -374,7 +374,7 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
 
   const thtVal = sheet.getCell(`F${totRow}`);
   thtVal.value = totalHt;
-  thtVal.numFmt = '#,##0.00';
+  thtVal.numFmt = '#.##0,00';
   thtVal.font = { name: 'Arial', size: 14, bold: true, color: { argb: 'FF111827' } };
   thtVal.alignment = { horizontal: 'right', vertical: 'middle' };
 
@@ -423,7 +423,7 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
   sheet.mergeCells(`B${totRow}:C${totRow}`);
   const vTotalHt = sheet.getCell(`B${totRow}`);
   vTotalHt.value = totalHt;
-  vTotalHt.numFmt = '#,##0.00';
+  vTotalHt.numFmt = '#.##0,00';
   vTotalHt.font = { name: 'Calibri', size: 13, bold: true, color: { argb: 'FF111827' } };
   vTotalHt.alignment = { horizontal: 'center', vertical: 'middle' };
   sheet.getCell(`B${totRow}`).border = boxBorder;
@@ -432,7 +432,7 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
   // Value 2: TVA 20% (D)
   const vTva = sheet.getCell(`D${totRow}`);
   vTva.value = totalTva;
-  vTva.numFmt = '#,##0.00';
+  vTva.numFmt = '#.##0,00';
   vTva.font = { name: 'Calibri', size: 13, bold: true, color: { argb: 'FF111827' } };
   vTva.alignment = { horizontal: 'center', vertical: 'middle' };
   vTva.border = boxBorder;
@@ -441,7 +441,7 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
   sheet.mergeCells(`E${totRow}:F${totRow}`);
   const vTtc = sheet.getCell(`E${totRow}`);
   vTtc.value = totalTtc;
-  vTtc.numFmt = '#,##0.00';
+  vTtc.numFmt = '#.##0,00';
   vTtc.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FF1E3A8A' } };
   vTtc.alignment = { horizontal: 'center', vertical: 'middle' };
   sheet.getCell(`E${totRow}`).border = boxBorder;

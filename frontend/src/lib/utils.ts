@@ -3,7 +3,11 @@ export function formatDate(date: string | Date): string {
 }
 
 export function formatMoney(amount: number | string): string {
-  return `${Number(amount).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} MAD`;
+  const n = Number(amount);
+  if (isNaN(n)) return '0,00 MAD';
+  const parts = n.toFixed(2).split('.');
+  const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return `${integerPart},${parts[1]} MAD`;
 }
 
 export const MOIS = [
