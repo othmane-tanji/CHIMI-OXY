@@ -80,6 +80,22 @@ export class UpdateFactureVenteDto {
 
   @IsOptional()
   @IsString()
+  numeroBl?: string;
+
+  @IsOptional()
+  @IsString()
+  delaiPaiement?: string;
+
+  @IsOptional()
+  @IsString()
+  typeEntetePaiement?: string;
+
+  @IsOptional()
+  @IsString()
+  valeurEntetePaiement?: string;
+
+  @IsOptional()
+  @IsString()
   chantier?: string;
 
   @IsOptional()

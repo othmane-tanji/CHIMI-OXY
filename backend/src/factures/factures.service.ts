@@ -13,6 +13,7 @@ import {
 } from '../common/facture.utils';
 import { generateFactureVentePdf } from '../common/facture-pdf.generator';
 import { generateBlExcelBuffer } from './bl-excel.generator';
+import { generateFactureExcelBuffer } from './facture-excel.generator';
 import {
   CreateFactureAchatDto,
   CreateFactureVenteDto,
@@ -469,6 +470,37 @@ export class FacturesService {
         designation: l.designation,
         quantite: Number(l.quantite),
         prixUnitaire: Number(l.prixUnitaire),
+      })),
+    });
+  }
+
+  async generateFactureExcel(id: number): Promise<Buffer> {
+    const facture = await this.findOneVente(id);
+    return generateFactureExcelBuffer({
+      numeroFacture: facture.numeroFacture,
+      dateFacture: facture.dateFacture,
+      societe: facture.societe,
+      clientNom: facture.clientNom,
+      clientIce: facture.clientIce ?? undefined,
+      codeClient: facture.codeClient ?? undefined,
+      bonCommande: facture.bonCommande ?? undefined,
+      numeroBl: facture.numeroBl ?? facture.numeroFacture,
+      conditionPaiement: facture.conditionPaiement ?? undefined,
+      delaiPaiement: facture.delaiPaiement ?? undefined,
+      typeEntetePaiement: facture.typeEntetePaiement ?? 'CONDITION',
+      valeurEntetePaiement: facture.valeurEntetePaiement ?? undefined,
+      chantier: facture.chantier ?? undefined,
+      afficherChantier: facture.afficherChantier,
+      totalHt: Number(facture.totalHt),
+      totalTva: Number(facture.totalTva),
+      totalTtc: Number(facture.totalTtc),
+      montantEnLettres: facture.montantEnLettres ?? undefined,
+      lignes: facture.lignes.map((l) => ({
+        code: undefined,
+        designation: l.designation,
+        quantite: Number(l.quantite),
+        prixUnitaire: Number(l.prixUnitaire),
+        montantHt: Number(l.montantHt),
       })),
     });
   }

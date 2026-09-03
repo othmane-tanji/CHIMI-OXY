@@ -118,6 +118,22 @@ export class FacturesController {
     res.send(buffer);
   }
 
+  @Get('vente/:id/excel')
+  async downloadVenteExcel(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
+    const facture = await this.facturesService.findOneVente(id);
+    const buffer = await this.facturesService.generateFactureExcel(id);
+    const societeName = (facture.societe || 'oxyral').toLowerCase();
+    const filename = `facture-${societeName}-${facture.numeroFacture.replace(/\//g, '-')}.xlsx`;
+
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': buffer.length,
+    });
+
+    res.send(buffer);
+  }
+
   @Get('vente/:id')
   findOneVente(@Param('id', ParseIntPipe) id: number) {
     return this.facturesService.findOneVente(id);

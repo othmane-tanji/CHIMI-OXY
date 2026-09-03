@@ -32,12 +32,17 @@ const emptyVenteForm = (isChimiral = false) => {
     clientIce: '',
     codeClient: defaults.codeClient,
     bonCommande: '',
+    numeroBl: '',
     numeroAttach: '',
     conditionPaiement: '60 JRs de la réception de facture',
+    delaiPaiement: '60 JRs de la réception de facture',
+    typeEntetePaiement: 'CONDITION',
+    valeurEntetePaiement: '',
     modeLivraison: 'Par nos soins',
     lignes: [emptyLigne()],
     sequenceConfig: '',
     chantier: '',
+    afficherChantier: false,
     hasBl: true,
   };
 };
@@ -190,10 +195,15 @@ export default function FacturesPage() {
         clientIce: full.clientIce || '',
         codeClient: full.codeClient,
         bonCommande: full.bonCommande || '',
+        numeroBl: full.numeroBl || full.numeroFacture || '',
         numeroAttach: full.numeroAttach || '',
         conditionPaiement: full.conditionPaiement || '60 JRs de la réception de facture',
+        delaiPaiement: full.delaiPaiement || full.conditionPaiement || '60 JRs de la réception de facture',
+        typeEntetePaiement: full.typeEntetePaiement || 'CONDITION',
+        valeurEntetePaiement: full.valeurEntetePaiement || '',
         modeLivraison: full.modeLivraison || 'Par nos soins',
         chantier: full.chantier || '',
+        afficherChantier: full.afficherChantier ?? Boolean(full.chantier),
         lignes: full.lignes?.length
           ? full.lignes.map((l: any) => ({
               designation: l.designation,
@@ -281,10 +291,15 @@ export default function FacturesPage() {
         clientIce: formVente.clientIce || undefined,
         codeClient: formVente.codeClient,
         bonCommande: formVente.bonCommande || undefined,
+        numeroBl: formVente.numeroBl || undefined,
         numeroAttach: formVente.numeroAttach || undefined,
         conditionPaiement: formVente.conditionPaiement || undefined,
+        delaiPaiement: formVente.delaiPaiement || undefined,
+        typeEntetePaiement: formVente.typeEntetePaiement || 'CONDITION',
+        valeurEntetePaiement: formVente.valeurEntetePaiement || undefined,
         modeLivraison: formVente.modeLivraison || undefined,
-        chantier: formVente.chantier || undefined,
+        chantier: formVente.afficherChantier ? formVente.chantier : undefined,
+        afficherChantier: formVente.afficherChantier,
         lignes,
         societe,
         hasBl: formVente.hasBl,
@@ -428,6 +443,15 @@ export default function FacturesPage() {
                         className="inline-flex items-center gap-1 text-brand-600 hover:underline text-xs font-medium"
                       >
                         <FileDown size={14} /> PDF
+                      </button>
+                      <button
+                        onClick={() => {
+                          const soc = (f.societe || (tab.includes('chimiral') ? 'chimiral' : 'oxyral')).toLowerCase();
+                          facturesApi.downloadVenteExcel(f.id, `facture-${soc}-${f.numeroFacture.replace(/\//g, '-')}.xlsx`);
+                        }}
+                        className="inline-flex items-center gap-1 rounded bg-emerald-700 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-800 shadow-sm transition-colors"
+                      >
+                        <FileDown size={14} /> Excel
                       </button>
                       {f.hasBl && (
                         <>
@@ -601,37 +625,132 @@ export default function FacturesPage() {
                 <label className="label">ICE</label>
                 <input className="input" value={formVente.clientIce} onChange={(e) => setFormVente({ ...formVente, clientIce: e.target.value })} />
               </div>
-              {['MARJANE HOLDING S.A.', 'MARJANE HOLDING SA', 'MARJANE HOLDING'].includes(formVente.clientNom?.trim().toUpperCase()) && (
-                <div>
-                  <label className="label text-brand-600 font-semibold">Chantier</label>
-                  <input className="input border-brand-300 font-semibold" placeholder="Ex. Tanger" value={formVente.chantier} onChange={(e) => setFormVente({ ...formVente, chantier: e.target.value })} />
-                </div>
-              )}
+              <div className="rounded-lg border p-3 bg-gray-50 dark:bg-gray-800/40 dark:border-gray-700">
+                <label className="flex items-center gap-2 font-semibold text-gray-800 dark:text-gray-200 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formVente.afficherChantier}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setFormVente((f) => ({
+                        ...f,
+                        afficherChantier: checked,
+                        chantier: checked ? (f.chantier || f.clientNom) : '',
+                      }));
+                    }}
+                    className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                  />
+                  <span>Ajouter un Chantier sur la Facture</span>
+                </label>
+
+                {formVente.afficherChantier && (
+                  <div className="mt-3">
+                    <label className="label text-brand-600 font-semibold">Nom / Libellé du Chantier</label>
+                    <input
+                      className="input font-semibold border-brand-300"
+                      placeholder="Ex. MARJANE TANGER CITY CENTER 115..."
+                      value={formVente.chantier}
+                      onChange={(e) => setFormVente({ ...formVente, chantier: e.target.value })}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div>
-              <label className="label">Code Client</label>
-              <input className="input" value={formVente.codeClient} onChange={(e) => setFormVente({ ...formVente, codeClient: e.target.value })} />
+          {/* METRIQUES ET MODALITES EN-TÊTE EXCEL / PDF */}
+          <div className="rounded-lg border p-3 dark:border-gray-700 bg-white dark:bg-gray-900 space-y-3">
+            <h4 className="font-semibold text-brand-600 text-sm">Informations d'en-tête (Facture & Excel)</h4>
+
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div>
+                <label className="label">Code Client</label>
+                <input
+                  className="input"
+                  value={formVente.codeClient}
+                  onChange={(e) => setFormVente({ ...formVente, codeClient: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="label">N° Bon de Commande</label>
+                <input
+                  className="input"
+                  placeholder="Ex. BC-2026-99"
+                  value={formVente.bonCommande}
+                  onChange={(e) => setFormVente({ ...formVente, bonCommande: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="label">N° Bon de Livraison (BL)</label>
+                <input
+                  className="input"
+                  placeholder="Ex. BL-2026-034"
+                  value={formVente.numeroBl}
+                  onChange={(e) => setFormVente({ ...formVente, numeroBl: e.target.value })}
+                />
+              </div>
             </div>
-            <div>
-              <label className="label">N° Bon de Commande</label>
-              <input className="input" placeholder="Ex. BC-2026-99" value={formVente.bonCommande} onChange={(e) => setFormVente({ ...formVente, bonCommande: e.target.value })} />
-            </div>
-            <div>
-              <label className="label">Mode de livraison</label>
-              <input className="input" placeholder="Par nos soins" value={formVente.modeLivraison} onChange={(e) => setFormVente({ ...formVente, modeLivraison: e.target.value })} />
-            </div>
-            <div>
-              <label className="label">Condition de Paiement</label>
-              <input
-                className="input"
-                placeholder="60 JRs de la réception de facture"
-                value={formVente.conditionPaiement}
-                onChange={(e) => setFormVente({ ...formVente, conditionPaiement: e.target.value })}
-              />
-            </div>
+
+            {/* MARJANE / PRIMARIOS vs AUTRES CLIENTS */}
+            {['MARJANE HOLDING S.A.', 'MARJANE HOLDING SA', 'MARJANE HOLDING', 'MARJANE', 'PRIMARIOS', 'PRIMARIOS S.A.'].includes(formVente.clientNom?.trim().toUpperCase()) ? (
+              <div>
+                <label className="label">Condition de Paiement (Marjane / Primarios)</label>
+                <input
+                  className="input"
+                  placeholder="60 JRs de la réception de facture"
+                  value={formVente.conditionPaiement}
+                  onChange={(e) => setFormVente({ ...formVente, conditionPaiement: e.target.value })}
+                />
+              </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2 pt-2 border-t dark:border-gray-800">
+                <div>
+                  <label className="label font-medium">Délai de paiement</label>
+                  <input
+                    className="input"
+                    placeholder="Ex. 60 JRs de la réception de facture"
+                    value={formVente.delaiPaiement}
+                    onChange={(e) => setFormVente({ ...formVente, delaiPaiement: e.target.value, conditionPaiement: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="label font-medium">Titre du 5ème champ d'en-tête Excel</label>
+                  <div className="flex items-center gap-4 py-1">
+                    <label className="flex items-center gap-1.5 text-xs font-semibold cursor-pointer">
+                      <input
+                        type="radio"
+                        name="typeEntetePaiement"
+                        value="CONDITION"
+                        checked={formVente.typeEntetePaiement !== 'RIB'}
+                        onChange={() => setFormVente({ ...formVente, typeEntetePaiement: 'CONDITION' })}
+                        className="text-brand-600"
+                      />
+                      <span>Conditions de payement</span>
+                    </label>
+                    <label className="flex items-center gap-1.5 text-xs font-semibold cursor-pointer">
+                      <input
+                        type="radio"
+                        name="typeEntetePaiement"
+                        value="RIB"
+                        checked={formVente.typeEntetePaiement === 'RIB'}
+                        onChange={() => setFormVente({ ...formVente, typeEntetePaiement: 'RIB' })}
+                        className="text-brand-600"
+                      />
+                      <span>RIB</span>
+                    </label>
+                  </div>
+                  <input
+                    className="input mt-1"
+                    placeholder={formVente.typeEntetePaiement === 'RIB' ? 'Ex. 007 780 0001234567890123 45' : 'Ex. 60 JRs de la réception de facture'}
+                    value={formVente.valeurEntetePaiement}
+                    onChange={(e) => setFormVente({ ...formVente, valeurEntetePaiement: e.target.value })}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-2 rounded-lg bg-gray-50 p-3 dark:bg-gray-800">

@@ -282,6 +282,20 @@ export const facturesApi = {
     a.click();
     URL.revokeObjectURL(url);
   },
+  downloadVenteExcel: async (id: number, filename: string) => {
+    const token = getToken();
+    const res = await fetch(`${API_URL}/factures/vente/${id}/excel`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error('Téléchargement Excel de la Facture impossible');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
 };
 
 export const traitesApi = {
