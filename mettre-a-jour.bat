@@ -5,29 +5,45 @@ echo =======================================================
 echo     MISE A JOUR AUTOMATIQUE BETA ERP
 echo =======================================================
 echo.
-echo Telechargement des nouvelles fonctionnalites en cours...
-echo.
 
-:: 1. Arret des anciens serveurs
+:: 1. Arret des serveurs Node pour liberer la base de donnees
 powershell -ExecutionPolicy Bypass -Command "Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue"
 
-:: 2. Configuration du depot Git officiel
+:: Recupere la date et l'heure pour la sauvegarde de securite
+for /f "tokens=2 delims==" %%i in ('wmic os get localdatetime /value') do set datetime=%%i
+set timestamp=%datetime:~0,4%-%datetime:~4,2%-%datetime:~6,2%_%datetime:~8,2%-%datetime:~10,2%
+
+set BACKUP_DIR=%~dp0backups
+if not exist "%BACKUP_DIR%" mkdir "%BACKUP_DIR%"
+
+:: 2. Sauvegarde de securite locale automatique avant toute action
+if exist "%~dp0backend\prisma\dev.db" (
+    copy /Y "%~dp0backend\prisma\dev.db" "%BACKUP_DIR%\dev_secu_avant_maj_%timestamp%.db" >nul
+)
+
+:: 3. Verification et envoi des modifications locales s'il y en a
+cd /d "%~dp0"
 git remote set-url origin https://github.com/othmane-tanji/CHIMI-OXY.git >nul 2>&1
 
-:: 3. Telechargement forcé du code depuis GitHub
-echo [1/3] Telechargement des mises a jour depuis GitHub...
+git status --porcelain backend/prisma/dev.db | findstr "dev.db" >nul
+if %errorlevel% equ 0 (
+    echo [INFO] Nouveautes detectees sur ce PC. Envoi automatique vers GitHub...
+    git add backend/prisma/dev.db
+    git commit -m "Sauvegarde automatique des donnees locales avant mise a jour"
+    git push origin main
+)
+
+:: 4. Telechargement de la derniere version depuis GitHub
+echo.
+echo [1/3] Telechargement des dernieres donnees depuis GitHub...
 git fetch origin main
 git reset --hard origin/main
 
-:: 4. Nettoyage du cache et installation des dependances
+:: 5. Verification du fichier .env et compilation
 echo.
-echo [2/3] Verification des modules et recompilation...
-if exist "frontend\.next" rmdir /s /q "frontend\.next"
-if exist "backend\dist" rmdir /s /q "backend\dist"
-
+echo [2/3] Verification de la base de donnees et compilation...
 cd /d "%~dp0backend"
 if not exist ".env" (
-  echo Creation du fichier .env...
   if exist ".env.example" (
     copy ".env.example" ".env" >nul
   ) else (
@@ -42,10 +58,8 @@ if not exist ".env" (
   )
 )
 if not exist "node_modules\nodemailer" (
-  echo Installation du module nodemailer...
   call npm.cmd install
 )
-echo Mise a jour Prisma Client et Base de donnees...
 call npx.cmd prisma db push --skip-generate
 call npx.cmd prisma generate
 call npm.cmd run build
@@ -56,7 +70,7 @@ if not exist "node_modules" (
 )
 call npm.cmd run build
 
-:: 5. Redemarrage de l'application
+:: 6. Redemarrage de l'application
 echo.
 echo [3/3] Redemarrage des serveurs...
 cd /d "%~dp0"
@@ -67,8 +81,8 @@ powershell -ExecutionPolicy Bypass -Command "Start-Sleep -Seconds 4; Start-Proce
 
 echo.
 echo =======================================================
-echo [SUCCES] L'APPLICATION A ETE MISE A JOUR AVEC SUCCES !
-echo - Vos donnees reelles (employes, conges...) sont conservees.
+echo [SUCCES] VOS DONNEES ET L'APPLICATION SONT A JOUR !
+echo - Toutes vos factures, clients et employes sont conserves.
 echo - Veuillez faire Ctrl + F5 sur votre navigateur !
 echo =======================================================
 echo.

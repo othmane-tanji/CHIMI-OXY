@@ -8,10 +8,31 @@ echo.
 echo 1. Arret complet des serveurs Node.js...
 powershell -ExecutionPolicy Bypass -Command "Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue"
 
+:: Recupere la date et l'heure pour la sauvegarde de securite
+for /f "tokens=2 delims==" %%i in ('wmic os get localdatetime /value') do set datetime=%%i
+set timestamp=%datetime:~0,4%-%datetime:~4,2%-%datetime:~6,2%_%datetime:~8,2%-%datetime:~10,2%
+
+set BACKUP_DIR=%~dp0backups
+if not exist "%BACKUP_DIR%" mkdir "%BACKUP_DIR%"
+
+:: Sauvegarde de securite locale automatique
+if exist "%~dp0backend\prisma\dev.db" (
+    copy /Y "%~dp0backend\prisma\dev.db" "%BACKUP_DIR%\dev_secu_avant_maj_%timestamp%.db" >nul
+)
+
 echo.
 echo 2. Sync forcé avec le depot GitHub officiel...
 cd /d "%~dp0"
 git remote set-url origin https://github.com/othmane-tanji/CHIMI-OXY.git
+
+git status --porcelain backend/prisma/dev.db | findstr "dev.db" >nul
+if %errorlevel% equ 0 (
+    echo [INFO] Nouveautes detectees sur ce PC. Envoi automatique vers GitHub...
+    git add backend/prisma/dev.db
+    git commit -m "Sauvegarde automatique des donnees locales avant mise a jour"
+    git push origin main
+)
+
 git fetch origin main
 git reset --hard origin/main
 
@@ -24,7 +45,6 @@ echo.
 echo 4. Preparation du serveur Backend (Base de donnees et Prisma)...
 cd /d "%~dp0backend"
 if not exist ".env" (
-  echo Creation du fichier .env...
   if exist ".env.example" (
     copy ".env.example" ".env" >nul
   ) else (
