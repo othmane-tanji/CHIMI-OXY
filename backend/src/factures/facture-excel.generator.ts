@@ -138,7 +138,7 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
       {
         font: { name: 'Calibri', size: 10, color: { argb: 'FF374151' } },
         text: isChimiral
-          ? `12 Rue Des Hopitaux\nCasablanca\nTéléphone : 05 22 33 29 05\nMail: chimiral@oxyral.ma`
+          ? `Zone Industriel TIT MELLIL\nCasablanca\nTéléphone : 06 62 17 62 92\nMail: chimiral2010@gmail.com`
           : `Zone Industriel TIT MELLIL\nCasablanca\nTéléphone : 0522 332 905\nFax       : 0522 329 062\nMail: oxyral2010@gmail.com`,
       },
     ],

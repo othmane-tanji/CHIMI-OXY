@@ -442,11 +442,11 @@ export default function BonsDeLivraisonPage() {
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <label className="label">Téléphone</label>
-                <input className="input" placeholder={tab === 'bl-chimiral' ? 'Ex. 05 22 33 29 05' : 'Ex. 0662 176 292'} value={formVente.telephone} onChange={(e) => setFormVente({ ...formVente, telephone: e.target.value })} />
+                <input className="input" placeholder={tab === 'bl-chimiral' ? 'Ex. 06 62 17 62 92' : 'Ex. 0662 176 292'} value={formVente.telephone} onChange={(e) => setFormVente({ ...formVente, telephone: e.target.value })} />
               </div>
               <div>
                 <label className="label">Mail</label>
-                <input className="input" placeholder={tab === 'bl-chimiral' ? 'Ex. chimiral@oxyral.ma' : 'Ex. contact@oxyral.ma'} value={formVente.mail} onChange={(e) => setFormVente({ ...formVente, mail: e.target.value })} />
+                <input className="input" placeholder={tab === 'bl-chimiral' ? 'Ex. chimiral2010@gmail.com' : 'Ex. contact@oxyral.ma'} value={formVente.mail} onChange={(e) => setFormVente({ ...formVente, mail: e.target.value })} />
               </div>
             </div>
           </div>

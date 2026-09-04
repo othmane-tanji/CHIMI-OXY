@@ -51,7 +51,7 @@ export const DEFAULTS_VENTE = {
 
 export const DEFAULTS_VENTE_CHIMIRAL = {
   codeClient: 'CH704',
-  telephone: '05 22 33 29 05',
-  mail: 'chimiral@oxyral.ma',
+  telephone: '06 62 17 62 92',
+  mail: 'chimiral2010@gmail.com',
 };
 
