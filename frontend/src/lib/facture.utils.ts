@@ -1,6 +1,7 @@
 export const TVA_TAUX = 0.2;
 
 export interface FactureLigneForm {
+  code?: string;
   designation: string;
   quantite: string;
   prixUnitaire: string;
@@ -38,6 +39,7 @@ export function calculerTotaux(lignes: FactureLigneForm[]) {
 }
 
 export const emptyLigne = (): FactureLigneForm => ({
+  code: '',
   designation: '',
   quantite: '',
   prixUnitaire: '',

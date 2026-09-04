@@ -170,6 +170,7 @@ export default function BonsDeLivraisonPage() {
       chantier: full.chantier || '',
       lignes: full.lignes?.length
         ? full.lignes.map((l: any) => ({
+            code: l.code || '',
             designation: l.designation,
             quantite: String(l.quantite),
             prixUnitaire: String(l.prixUnitaire),
@@ -222,6 +223,7 @@ export default function BonsDeLivraisonPage() {
       const lignes = formVente.lignes
           .filter((l) => l.designation.trim())
           .map((l) => ({
+            code: l.code?.trim() || undefined,
             designation: l.designation,
             quantite: parseNum(l.quantite),
             prixUnitaire: parseNum(l.prixUnitaire),
@@ -546,7 +548,17 @@ export default function BonsDeLivraisonPage() {
             <div className="space-y-2">
               {formVente.lignes.map((ligne, i) => (
                 <div key={i} className="grid gap-2 rounded-lg bg-gray-50 p-3 dark:bg-gray-800 sm:grid-cols-12">
-                  <div className="sm:col-span-5">
+                  <div className="sm:col-span-2">
+                    <label className="label text-xs">{tab === 'bl-chimiral' ? 'Emballage' : 'Code'}</label>
+                    <input
+                      type="text"
+                      className="input text-xs"
+                      placeholder={tab === 'bl-chimiral' ? 'Ex. B20L, F200L...' : 'Ex. 01'}
+                      value={ligne.code || ''}
+                      onChange={(e) => updateLigne(i, 'code', e.target.value)}
+                    />
+                  </div>
+                  <div className="sm:col-span-4">
                     <label className="label text-xs">Désignation</label>
                     <textarea
                       className="input min-h-[60px]"
@@ -561,7 +573,7 @@ export default function BonsDeLivraisonPage() {
                       type="number"
                       step="0.01"
                       min="0"
-                      className="input"
+                      className="input text-xs"
                       value={ligne.quantite}
                       onChange={(e) => updateLigne(i, 'quantite', e.target.value)}
                     />
@@ -572,20 +584,20 @@ export default function BonsDeLivraisonPage() {
                       type="number"
                       step="0.01"
                       min="0"
-                      className="input"
+                      className="input text-xs"
                       value={ligne.prixUnitaire}
                       onChange={(e) => updateLigne(i, 'prixUnitaire', e.target.value)}
                     />
                   </div>
-                  <div className="sm:col-span-2">
-                    <label className="label text-xs">Montant HT</label>
+                  <div className="sm:col-span-1">
+                    <label className="label text-xs">Montant</label>
                     <input
-                      className="input bg-gray-100 dark:bg-gray-900"
+                      className="input bg-gray-100 dark:bg-gray-900 text-xs px-1 text-right"
                       value={formatMontantFacture(calculerLigne(ligne.quantite, ligne.prixUnitaire))}
                       readOnly
                     />
                   </div>
-                  <div className="flex items-end sm:col-span-1">
+                  <div className="flex items-end justify-center sm:col-span-1">
                     <button type="button" onClick={() => removeLigne(i)} className="btn-danger p-2">
                       <Trash2 size={14} />
                     </button>
@@ -642,6 +654,7 @@ export default function BonsDeLivraisonPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b">
+                  <th className="table-th text-left">{detailModal.societe === 'CHIMIRAL' ? 'Emballage' : 'Code'}</th>
                   <th className="table-th text-left">Désignation</th>
                   <th className="table-th">Qté</th>
                   <th className="table-th">P.U HT</th>
@@ -650,6 +663,7 @@ export default function BonsDeLivraisonPage() {
               <tbody>
                 {detailModal.lignes?.map((l: any) => (
                   <tr key={l.id} className="border-b">
+                    <td className="table-td font-medium">{l.code || '-'}</td>
                     <td className="table-td">{l.designation}</td>
                     <td className="table-td text-center">{formatMontantFacture(Number(l.quantite))}</td>
                     <td className="table-td text-right">{formatMontantFacture(Number(l.prixUnitaire))}</td>

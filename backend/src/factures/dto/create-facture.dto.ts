@@ -26,6 +26,10 @@ export class CreateFactureAchatDto {
 }
 
 export class FactureLigneDto {
+  @IsOptional()
+  @IsString()
+  code?: string;
+
   @IsString()
   designation: string;
 

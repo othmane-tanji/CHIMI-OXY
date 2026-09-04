@@ -172,6 +172,7 @@ model FactureVente {
 model FactureVenteLigne {
   id           Int     @id @default(autoincrement())
   factureId    Int     @map("facture_id")
+  code         String?
   designation  String
   quantite     Decimal
   prixUnitaire Decimal @map("prix_unitaire")

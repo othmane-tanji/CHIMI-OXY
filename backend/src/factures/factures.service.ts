@@ -279,6 +279,7 @@ export class FacturesService {
         hasBl: dto.hasBl ?? false,
         lignes: {
           create: totaux.lignes.map((l, i) => ({
+            code: (l as any).code || null,
             designation: l.designation,
             quantite: l.quantite,
             prixUnitaire: l.prixUnitaire,
@@ -358,6 +359,7 @@ export class FacturesService {
           ? {
               lignes: {
                 create: totaux.lignes.map((l, i) => ({
+                  code: (l as any).code || null,
                   designation: l.designation,
                   quantite: l.quantite,
                   prixUnitaire: l.prixUnitaire,
@@ -528,7 +530,7 @@ export class FacturesService {
       totalTtc: Number(facture.totalTtc),
       montantEnLettres: facture.montantEnLettres ?? undefined,
       lignes: facture.lignes.map((l) => ({
-        code: undefined,
+        code: l.code ?? undefined,
         designation: l.designation,
         quantite: Number(l.quantite),
         prixUnitaire: Number(l.prixUnitaire),
