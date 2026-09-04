@@ -19,4 +19,12 @@ export class CreateClientDto {
   @IsOptional()
   @IsString()
   ice?: string;
+
+  @IsOptional()
+  @IsString()
+  telephone?: string;
+
+  @IsOptional()
+  @IsString()
+  email?: string;
 }

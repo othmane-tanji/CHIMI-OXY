@@ -21,4 +21,12 @@ export class UpdateClientDto {
   @IsOptional()
   @IsString()
   ice?: string;
+
+  @IsOptional()
+  @IsString()
+  telephone?: string;
+
+  @IsOptional()
+  @IsString()
+  email?: string;
 }

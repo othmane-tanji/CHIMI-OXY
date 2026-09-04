@@ -231,6 +231,8 @@ export default function FacturesPage() {
         ? [client.adresse, client.ville].filter(Boolean).join(' — ')
         : f.clientAdresse,
       clientIce: client?.ice || f.clientIce,
+      telephone: client?.telephone || f.telephone,
+      mail: client?.email || f.mail,
     }));
   };
 

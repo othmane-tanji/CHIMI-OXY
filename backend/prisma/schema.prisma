@@ -47,6 +47,8 @@ model Client {
   adresse    String?
   ville      String?
   ice        String?
+  telephone  String?
+  email      String?
   createdAt  DateTime @default(now()) @map("created_at")
 
   facturesVente FactureVente[]

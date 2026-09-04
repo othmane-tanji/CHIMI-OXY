@@ -9,8 +9,26 @@ import { Modal } from '@/components/Modal';
 export default function ClientsPage() {
   const [clients, setClients] = useState<any[]>([]);
   const [modal, setModal] = useState(false);
-  const [form, setForm] = useState({ nomClient: '', societe: 'OXYRAL', adresse: '', ville: '', ice: '' });
+  const [form, setForm] = useState({
+    nomClient: '',
+    societe: 'OXYRAL',
+    telephone: '',
+    email: '',
+    adresse: '',
+    ville: '',
+    ice: '',
+  });
   const [editId, setEditId] = useState<number | null>(null);
+
+  const emptyForm = {
+    nomClient: '',
+    societe: 'OXYRAL',
+    telephone: '',
+    email: '',
+    adresse: '',
+    ville: '',
+    ice: '',
+  };
 
   const load = () => clientsApi.getAll().then(setClients);
   useEffect(() => { load(); }, []);
@@ -26,7 +44,7 @@ export default function ClientsPage() {
   return (
     <div>
       <PageHeader title="Clients" action={
-        <button onClick={() => { setForm({ nomClient: '', societe: 'OXYRAL', adresse: '', ville: '', ice: '' }); setEditId(null); setModal(true); }} className="btn-primary flex items-center gap-2">
+        <button onClick={() => { setForm(emptyForm); setEditId(null); setModal(true); }} className="btn-primary flex items-center gap-2">
           <Plus size={16} /> Ajouter
         </button>
       } />
@@ -36,6 +54,8 @@ export default function ClientsPage() {
             <tr className="border-b dark:border-gray-800">
               <th className="table-th">Nom</th>
               <th className="table-th">Société</th>
+              <th className="table-th">Téléphone</th>
+              <th className="table-th">Email</th>
               <th className="table-th">ICE</th>
               <th className="table-th">Adresse</th>
               <th className="table-th">Ville</th>
@@ -47,11 +67,25 @@ export default function ClientsPage() {
               <tr key={c.id} className="border-b border-gray-100 dark:border-gray-800">
                 <td className="table-td font-medium">{c.nomClient}</td>
                 <td className="table-td">{c.societe}</td>
+                <td className="table-td">{c.telephone || '-'}</td>
+                <td className="table-td">{c.email || '-'}</td>
                 <td className="table-td">{c.ice || '-'}</td>
                 <td className="table-td">{c.adresse || '-'}</td>
                 <td className="table-td">{c.ville || '-'}</td>
                 <td className="table-td">
-                  <button onClick={() => { setForm({ nomClient: c.nomClient, societe: c.societe, adresse: c.adresse || '', ville: c.ville || '', ice: c.ice || '' }); setEditId(c.id); setModal(true); }} className="btn-secondary mr-2 text-xs">Modifier</button>
+                  <button onClick={() => {
+                    setForm({
+                      nomClient: c.nomClient,
+                      societe: c.societe,
+                      telephone: c.telephone || '',
+                      email: c.email || '',
+                      adresse: c.adresse || '',
+                      ville: c.ville || '',
+                      ice: c.ice || '',
+                    });
+                    setEditId(c.id);
+                    setModal(true);
+                  }} className="btn-secondary mr-2 text-xs">Modifier</button>
                   <button onClick={async () => { if (confirm('Supprimer ?')) { await clientsApi.remove(c.id); load(); } }} className="btn-danger text-xs">Supprimer</button>
                 </td>
               </tr>
@@ -66,6 +100,10 @@ export default function ClientsPage() {
             <select className="input" value={form.societe} onChange={(e) => setForm({ ...form, societe: e.target.value })}>
               <option value="OXYRAL">Oxyral</option><option value="CHIMIRAL">Chimiral</option>
             </select>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div><label className="label">Téléphone</label><input className="input" placeholder="Ex. 06 00 00 00 00" value={form.telephone} onChange={(e) => setForm({ ...form, telephone: e.target.value })} /></div>
+            <div><label className="label">Email</label><input className="input" type="email" placeholder="client@exemple.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
           </div>
           <div><label className="label">ICE</label><input className="input" value={form.ice} onChange={(e) => setForm({ ...form, ice: e.target.value })} /></div>
           <div><label className="label">Adresse</label><input className="input" value={form.adresse} onChange={(e) => setForm({ ...form, adresse: e.target.value })} /></div>
