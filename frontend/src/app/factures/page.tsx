@@ -148,9 +148,10 @@ export default function FacturesPage() {
   }, [formVente.lignes, modal, isVente]);
 
   const loadProchainNumero = async (date?: string) => {
-    const annee = date ? new Date(date).getFullYear() : new Date().getFullYear();
+    const d = date || new Date().toISOString().split('T')[0];
+    const annee = new Date(d).getFullYear();
     const societe = tab === 'vente-chimiral' ? 'CHIMIRAL' : 'OXYRAL';
-    const data = await facturesApi.getProchainNumero(annee, societe);
+    const data = await facturesApi.getProchainNumero(annee, societe, d);
     setFormVente((f) => ({
       ...f,
       numeroFacture: data.numeroFacture,
@@ -557,12 +558,18 @@ export default function FacturesPage() {
                   value={formVente.sequenceConfig}
                   onChange={(e) => {
                     const seq = e.target.value;
-                    const annee = new Date(formVente.dateFacture).getFullYear();
-                    const sep = tab === 'vente-chimiral' ? '-' : '/';
+                    const d = formVente.dateFacture ? new Date(formVente.dateFacture) : new Date();
+                    const annee = d.getFullYear();
+                    const isChimiral = tab === 'vente-chimiral';
+                    const yy = String(annee).slice(-2);
+                    const mm = String(d.getMonth() + 1).padStart(2, '0');
+                    const numFormatted = isChimiral
+                      ? `${yy}${mm}-${String(parseInt(seq, 10) || 0).padStart(3, '0')}`
+                      : `${annee}/${String(parseInt(seq, 10) || 0).padStart(3, '0')}`;
                     setFormVente({
                       ...formVente,
                       sequenceConfig: seq,
-                      numeroFacture: seq ? `${annee}${sep}${String(parseInt(seq, 10)).padStart(3, '0')}` : formVente.numeroFacture,
+                      numeroFacture: seq ? numFormatted : formVente.numeroFacture,
                     });
                   }}
                 />

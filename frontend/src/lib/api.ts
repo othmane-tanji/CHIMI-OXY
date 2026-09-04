@@ -209,10 +209,11 @@ export const facturesApi = {
     return api<any[]>(`/factures/vente${q}`);
   },
   getVenteOne: (id: number) => api<any>(`/factures/vente/${id}`),
-  getProchainNumero: (annee?: number, societe?: string) => {
+  getProchainNumero: (annee?: number, societe?: string, dateFacture?: string) => {
     const params: Record<string, string> = {};
     if (annee) params.annee = String(annee);
     if (societe) params.societe = societe;
+    if (dateFacture) params.dateFacture = dateFacture;
     const q = '?' + new URLSearchParams(params).toString();
     return api<{ numeroFacture: string; sequence: number; annee: number }>(
       `/factures/vente/prochain-numero${q}`,

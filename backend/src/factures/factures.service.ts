@@ -47,15 +47,21 @@ export class FacturesService {
     lignes: { orderBy: { ordre: 'asc' as const } },
   };
 
-  private async getNextSequence(annee: number, societe: string = 'OXYRAL'): Promise<number> {
-    const isOxyral = societe === 'OXYRAL';
-    const cle = isOxyral ? `vente_seq_${annee}` : `vente_seq_${societe.toLowerCase()}_${annee}`;
+  private async getNextSequence(annee: number, societe: string = 'OXYRAL', dateFacture?: Date | string): Promise<number> {
+    const isChimiral = societe.toUpperCase() === 'CHIMIRAL';
+    const d = dateFacture ? new Date(dateFacture) : new Date();
+    const yy = String(d.getFullYear()).slice(-2);
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yymm = `${yy}${mm}`;
+
+    const cle = isChimiral ? `vente_seq_chimiral_${annee}` : `vente_seq_${annee}`;
     const existing = await this.prisma.factureConfig.findUnique({ where: { cle } });
     if (existing) return parseInt(existing.valeur, 10) + 1;
 
     const last = await this.prisma.factureVente.findFirst({
       where: {
         OR: [
+          { numeroFacture: { startsWith: `${yymm}-` } },
           { numeroFacture: { startsWith: `${annee}-` } },
           { numeroFacture: { startsWith: `${annee}/` } },
         ],
@@ -69,9 +75,10 @@ export class FacturesService {
     return (parseInt(part, 10) || 0) + 1;
   }
 
-  async getProchainNumero(annee?: number, societe: string = 'OXYRAL') {
-    const year = annee ?? new Date().getFullYear();
-    const sequence = await this.getNextSequence(year, societe);
+  async getProchainNumero(annee?: number, societe: string = 'OXYRAL', dateFacture?: Date | string) {
+    const date = dateFacture ? new Date(dateFacture) : new Date();
+    const year = annee ?? date.getFullYear();
+    const sequence = await this.getNextSequence(year, societe, date);
     const isOxyral = societe === 'OXYRAL';
     const cle = isOxyral ? `vente_seq_${year}` : `vente_seq_${societe.toLowerCase()}_${year}`;
     const config = await this.prisma.factureConfig.findUnique({
@@ -80,7 +87,7 @@ export class FacturesService {
     return {
       annee: year,
       sequence,
-      numeroFacture: formatNumeroFacture(year, sequence, societe),
+      numeroFacture: formatNumeroFacture(year, sequence, societe, date),
       sequenceConfigurable: config ? parseInt(config.valeur, 10) : sequence - 1,
     };
   }

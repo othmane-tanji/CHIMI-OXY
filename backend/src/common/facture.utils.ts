@@ -53,8 +53,18 @@ export function calculerFactureVente(lignes: FactureLigneInput[]): FactureTotaux
   };
 }
 
-export function formatNumeroFacture(annee: number, sequence: number, societe: string = 'OXYRAL'): string {
+export function formatNumeroFacture(
+  annee: number,
+  sequence: number,
+  societe: string = 'OXYRAL',
+  dateFacture?: Date | string
+): string {
   const isChimiral = (societe || '').toUpperCase() === 'CHIMIRAL';
-  const sep = isChimiral ? '-' : '/';
-  return `${annee}${sep}${String(sequence).padStart(3, '0')}`;
+  if (isChimiral) {
+    const d = dateFacture ? new Date(dateFacture) : new Date();
+    const yy = String(d.getFullYear()).slice(-2);
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    return `${yy}${mm}-${String(sequence).padStart(3, '0')}`;
+  }
+  return `${annee}/${String(sequence).padStart(3, '0')}`;
 }

@@ -59,10 +59,12 @@ export class FacturesController {
   getProchainNumero(
     @Query('annee') annee?: string,
     @Query('societe') societe?: string,
+    @Query('dateFacture') dateFacture?: string,
   ) {
     return this.facturesService.getProchainNumero(
       annee ? parseInt(annee, 10) : undefined,
       societe,
+      dateFacture,
     );
   }
 
