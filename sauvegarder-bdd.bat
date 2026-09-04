@@ -17,11 +17,14 @@ if not exist "%BACKUP_DIR%" (
 
 set SOURCE_DB=%~dp0backend\prisma\dev.db
 set TARGET_DB=%BACKUP_DIR%\beta_erp_backup_%timestamp%.db
+set LATEST_DB=%~dp0MA_BASE_DE_DONNEES.db
 
 if exist "%SOURCE_DB%" (
     copy /Y "%SOURCE_DB%" "%TARGET_DB%" >nul
-    echo [SUCCESS] Sauvegarde creee avec succes !
-    echo Fichier : %TARGET_DB%
+    copy /Y "%SOURCE_DB%" "%LATEST_DB%" >nul
+    echo [SUCCES] Sauvegarde creee avec succes !
+    echo - Archive datee : %TARGET_DB%
+    echo - Fichier a copier sur l'autre PC : %LATEST_DB%
 ) else (
     echo [ERREUR] Impossible de trouver la base de donnees dev.db dans backend/prisma.
 )
