@@ -210,8 +210,21 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
   sheet.getCell('D15').border = thinBorder;
   sheet.getCell('D15').fill = softFill;
 
-  const typeUpper = (data.typeEntetePaiement || '').toUpperCase();
-  const isMode = typeUpper === 'MODE' || typeUpper === 'MODE DE PAIEMENT';
+  const typeUpper = (data.typeEntetePaiement || '').trim().toUpperCase();
+  const valUpper = (data.valeurEntetePaiement || '').trim().toUpperCase();
+  const condUpper = (data.conditionPaiement || '').trim().toUpperCase();
+
+  const isMode =
+    typeUpper === 'MODE' ||
+    typeUpper.includes('MODE') ||
+    valUpper.includes('ESPECE') ||
+    valUpper.includes('VIREMENT') ||
+    valUpper.includes('CHEQUE') ||
+    valUpper.includes('TRAITE') ||
+    condUpper.includes('ESPECE') ||
+    condUpper.includes('VIREMENT') ||
+    condUpper.includes('CHEQUE') ||
+    condUpper.includes('TRAITE');
 
   if (isMarjaneOrPrimarios) {
     sheet.mergeCells('E13:F13');

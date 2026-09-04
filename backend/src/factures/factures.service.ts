@@ -484,6 +484,19 @@ export class FacturesService {
 
   async generateFactureExcel(id: number): Promise<Buffer> {
     const facture = await this.findOneVente(id);
+    const condVal = (facture.valeurEntetePaiement || facture.conditionPaiement || '').toUpperCase();
+    let typeEntetePaiement = facture.typeEntetePaiement;
+    if (!typeEntetePaiement || typeEntetePaiement === 'CONDITION') {
+      if (
+        condVal.includes('ESPECE') ||
+        condVal.includes('VIREMENT') ||
+        condVal.includes('CHEQUE') ||
+        condVal.includes('TRAITE') ||
+        condVal.includes('MODE')
+      ) {
+        typeEntetePaiement = 'MODE';
+      }
+    }
     return generateFactureExcelBuffer({
       numeroFacture: facture.numeroFacture,
       dateFacture: facture.dateFacture,
@@ -495,8 +508,8 @@ export class FacturesService {
       numeroBl: facture.numeroBl ?? facture.numeroFacture,
       conditionPaiement: facture.conditionPaiement ?? undefined,
       delaiPaiement: facture.delaiPaiement ?? undefined,
-      typeEntetePaiement: facture.typeEntetePaiement ?? 'CONDITION',
-      valeurEntetePaiement: facture.valeurEntetePaiement ?? undefined,
+      typeEntetePaiement: typeEntetePaiement ?? 'CONDITION',
+      valeurEntetePaiement: facture.valeurEntetePaiement ?? facture.conditionPaiement ?? undefined,
       chantier: facture.chantier ?? undefined,
       afficherChantier: facture.afficherChantier,
       totalHt: Number(facture.totalHt),
