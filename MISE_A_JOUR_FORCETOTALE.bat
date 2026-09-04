@@ -23,6 +23,21 @@ if exist "backend\dist" rmdir /s /q "backend\dist"
 echo.
 echo 4. Preparation du serveur Backend (Base de donnees et Prisma)...
 cd /d "%~dp0backend"
+if not exist ".env" (
+  echo Creation du fichier .env...
+  if exist ".env.example" (
+    copy ".env.example" ".env" >nul
+  ) else (
+    echo DATABASE_URL="file:./dev.db"> ".env"
+    echo JWT_SECRET="beta-erp-secret-local-dev">> ".env"
+    echo JWT_EXPIRES_IN="24h">> ".env"
+    echo PORT=3001>> ".env"
+    echo SMTP_HOST="smtp.gmail.com">> ".env"
+    echo SMTP_PORT=465>> ".env"
+    echo SMTP_USER="tangi.fat@gmail.com">> ".env"
+    echo SMTP_PASS="tryydiddanrsyuej">> ".env"
+  )
+)
 call npm.cmd install
 call npx.cmd prisma db push --skip-generate
 call npx.cmd prisma generate

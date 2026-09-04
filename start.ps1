@@ -16,6 +16,11 @@ $frontendPath = Join-Path $PSScriptRoot "frontend"
 
 Write-Host "`n[1/3] Configuration du backend..." -ForegroundColor Yellow
 Set-Location $backendPath
+if (-not (Test-Path "$backendPath\.env")) {
+    if (Test-Path "$backendPath\.env.example") {
+        Copy-Item "$backendPath\.env.example" "$backendPath\.env"
+    }
+}
 if (-not (Test-Path "$backendPath\node_modules")) {
     npm.cmd install
 }
