@@ -1,34 +1,33 @@
 @echo off
-title Sauvegarde Automatique de la Base de Donnees - Beta ERP
-color 0B
+title ENVOYER & SAUVEGARDER LA BASE DE DONNEES SUR GITHUB - BETA ERP
+color 0A
 echo =======================================================
-echo     SAUVEGARDE DE LA BASE DE DONNEES (BETA ERP)
+echo     ENVOI DE LA BASE DE DONNEES SUR GITHUB
 echo =======================================================
 echo.
+echo 1. Arret temporaire des serveurs pour debloquer la base de donnees...
+powershell -ExecutionPolicy Bypass -Command "Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue"
 
-:: Recupere la date et l'heure pour le nom du fichier
-for /f "tokens=2 delims==" %%i in ('wmic os get localdatetime /value') do set datetime=%%i
-set timestamp=%datetime:~0,4%-%datetime:~4,2%-%datetime:~6,2%_%datetime:~8,2%-%datetime:~10,2%
+echo.
+echo 2. Envoi de la base de donnees (factures, clients, employes...) sur GitHub...
+cd /d "%~dp0"
+git remote set-url origin https://github.com/othmane-tanji/CHIMI-OXY.git >nul 2>&1
+git add backend/prisma/dev.db
+git commit -m "Mise a jour automatique de la base de donnees"
+git push origin main
 
-set BACKUP_DIR=%~dp0backups
-if not exist "%BACKUP_DIR%" (
-    mkdir "%BACKUP_DIR%"
-)
-
-set SOURCE_DB=%~dp0backend\prisma\dev.db
-set TARGET_DB=%BACKUP_DIR%\beta_erp_backup_%timestamp%.db
-set LATEST_DB=%~dp0MA_BASE_DE_DONNEES.db
-
-if exist "%SOURCE_DB%" (
-    copy /Y "%SOURCE_DB%" "%TARGET_DB%" >nul
-    copy /Y "%SOURCE_DB%" "%LATEST_DB%" >nul
-    echo [SUCCES] Sauvegarde creee avec succes !
-    echo - Archive datee : %TARGET_DB%
-    echo - Fichier a copier sur l'autre PC : %LATEST_DB%
-) else (
-    echo [ERREUR] Impossible de trouver la base de donnees dev.db dans backend/prisma.
-)
+echo.
+echo 3. Redemarrage des serveurs...
+powershell -ExecutionPolicy Bypass -Command "Start-Process node -ArgumentList 'dist/main.js' -WorkingDirectory '%~dp0backend' -WindowStyle Hidden"
+powershell -ExecutionPolicy Bypass -Command "Start-Process cmd -ArgumentList '/c npm run start' -WorkingDirectory '%~dp0frontend' -WindowStyle Hidden"
 
 echo.
 echo =======================================================
+echo [SUCCES] LA BASE DE DONNEES A ETE ENVOYEE SUR GITHUB !
+echo.
+echo POUR L'AUTRE PC :
+echo Sur l'autre PC, cliquez simplement sur 'mettre-a-jour.bat'
+echo pour recevoir automatiquement toutes vos nouvelles donnees !
+echo =======================================================
+echo.
 pause

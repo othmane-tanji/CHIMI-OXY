@@ -7,10 +7,9 @@ dist/
 .next/
 out/
 
-# Base de donnees SQLite de production local (a conserver sur chaque PC)
-backend/prisma/dev.db
+# Base de donnees SQLite synchronisee via Git
+!backend/prisma/dev.db
 backend/prisma/dev.db-journal
-*.db
 *.db-journal
 
 # Fichiers d'environnement et logs
