@@ -55,13 +55,17 @@ export class FacturesService {
 
     const last = await this.prisma.factureVente.findFirst({
       where: {
-        numeroFacture: { startsWith: `${annee}/` },
+        OR: [
+          { numeroFacture: { startsWith: `${annee}-` } },
+          { numeroFacture: { startsWith: `${annee}/` } },
+        ],
         societe,
       },
-      orderBy: { numeroFacture: 'desc' },
+      orderBy: { id: 'desc' },
     });
     if (!last) return 1;
-    const part = last.numeroFacture.split('/')[1];
+    const parts = last.numeroFacture.split(/[-/]/);
+    const part = parts[parts.length - 1];
     return (parseInt(part, 10) || 0) + 1;
   }
 
@@ -76,7 +80,7 @@ export class FacturesService {
     return {
       annee: year,
       sequence,
-      numeroFacture: formatNumeroFacture(year, sequence),
+      numeroFacture: formatNumeroFacture(year, sequence, societe),
       sequenceConfigurable: config ? parseInt(config.valeur, 10) : sequence - 1,
     };
   }
@@ -96,8 +100,8 @@ export class FacturesService {
     const isOxyral = societe === 'OXYRAL';
     const cle = isOxyral ? `vente_seq_${annee}` : `vente_seq_${societe.toLowerCase()}_${annee}`;
     if (numeroForce) {
-      const part = numeroForce.split('/')[1];
-      const seq = parseInt(part, 10);
+      const parts = numeroForce.split(/[-/]/);
+      const seq = parseInt(parts[parts.length - 1], 10);
       if (seq) {
         await this.prisma.factureConfig.upsert({
           where: { cle },
@@ -108,7 +112,7 @@ export class FacturesService {
       return numeroForce;
     }
     const sequence = await this.getNextSequence(annee, societe);
-    const numero = formatNumeroFacture(annee, sequence);
+    const numero = formatNumeroFacture(annee, sequence, societe);
     await this.prisma.factureConfig.upsert({
       where: { cle },
       create: { cle, valeur: String(sequence) },

@@ -538,13 +538,13 @@ export default function FacturesPage() {
               />
             </div>
             <div>
-              <label className="label">N° Facture (YYYY/XXX)</label>
+              <label className="label">N° Facture {tab === 'vente-chimiral' ? '(Ex. 2605-017)' : '(Ex. 2026/017)'}</label>
               <input
-                className="input"
+                className="input font-semibold"
+                placeholder={tab === 'vente-chimiral' ? 'Ex. 2605-017 ou numéro personnalisé' : 'Ex. 2026/017 ou numéro personnalisé'}
                 value={formVente.numeroFacture}
                 onChange={(e) => setFormVente({ ...formVente, numeroFacture: e.target.value })}
                 required
-                readOnly={!editId}
               />
             </div>
             {!editId && (
@@ -558,10 +558,11 @@ export default function FacturesPage() {
                   onChange={(e) => {
                     const seq = e.target.value;
                     const annee = new Date(formVente.dateFacture).getFullYear();
+                    const sep = tab === 'vente-chimiral' ? '-' : '/';
                     setFormVente({
                       ...formVente,
                       sequenceConfig: seq,
-                      numeroFacture: seq ? `${annee}/${String(parseInt(seq, 10)).padStart(3, '0')}` : formVente.numeroFacture,
+                      numeroFacture: seq ? `${annee}${sep}${String(parseInt(seq, 10)).padStart(3, '0')}` : formVente.numeroFacture,
                     });
                   }}
                 />

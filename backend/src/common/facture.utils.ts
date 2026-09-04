@@ -53,6 +53,8 @@ export function calculerFactureVente(lignes: FactureLigneInput[]): FactureTotaux
   };
 }
 
-export function formatNumeroFacture(annee: number, sequence: number): string {
-  return `${annee}/${String(sequence).padStart(3, '0')}`;
+export function formatNumeroFacture(annee: number, sequence: number, societe: string = 'OXYRAL'): string {
+  const isChimiral = (societe || '').toUpperCase() === 'CHIMIRAL';
+  const sep = isChimiral ? '-' : '/';
+  return `${annee}${sep}${String(sequence).padStart(3, '0')}`;
 }
