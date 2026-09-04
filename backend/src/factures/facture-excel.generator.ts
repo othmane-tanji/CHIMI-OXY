@@ -210,6 +210,9 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
   sheet.getCell('D15').border = thinBorder;
   sheet.getCell('D15').fill = softFill;
 
+  const typeUpper = (data.typeEntetePaiement || '').toUpperCase();
+  const isMode = typeUpper === 'MODE' || typeUpper === 'MODE DE PAIEMENT';
+
   if (isMarjaneOrPrimarios) {
     sheet.mergeCells('E13:F13');
     const m4Title = sheet.getCell('E13');
@@ -228,6 +231,25 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
     m4Val.fill = softFill;
     sheet.getCell('E15').border = thinBorder;
     sheet.getCell('F15').border = thinBorder;
+  } else if (isMode) {
+    // Si MODE DE PAIEMENT : Supprimer "Délai de paiement" et fusionner E13:F13 et E15:F15 pour Mode de paiement
+    sheet.mergeCells('E13:F13');
+    const modeTitle = sheet.getCell('E13');
+    modeTitle.value = 'Mode de paiement';
+    modeTitle.font = headerFont;
+    modeTitle.alignment = { horizontal: 'center', vertical: 'middle' };
+    modeTitle.fill = headerFill;
+    sheet.getCell('E13').border = thinBorder;
+    sheet.getCell('F13').border = thinBorder;
+
+    sheet.mergeCells('E15:F15');
+    const modeVal = sheet.getCell('E15');
+    modeVal.value = data.valeurEntetePaiement || 'Virement bancaire';
+    modeVal.font = valFont;
+    modeVal.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    modeVal.fill = softFill;
+    sheet.getCell('E15').border = thinBorder;
+    sheet.getCell('F15').border = thinBorder;
   } else {
     sheet.getCell('E13').value = 'Délai de paiement';
     sheet.getCell('E13').font = headerFont;
@@ -241,20 +263,11 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
     sheet.getCell('E15').border = thinBorder;
     sheet.getCell('E15').fill = softFill;
 
-    const typeUpper = (data.typeEntetePaiement || '').toUpperCase();
-    let fifthTitle = 'Conditions de payement';
-    if (typeUpper === 'RIB') {
-      fifthTitle = 'RIB';
-    } else if (typeUpper === 'MODE' || typeUpper === 'MODE DE PAIEMENT') {
-      fifthTitle = 'Mode de paiement';
-    }
-
-    let fifthVal = data.valeurEntetePaiement || data.conditionPaiement || '60 JRs de la réception de facture';
-    if (typeUpper === 'RIB') {
-      fifthVal = data.valeurEntetePaiement || data.rib || '';
-    } else if (typeUpper === 'MODE' || typeUpper === 'MODE DE PAIEMENT') {
-      fifthVal = data.valeurEntetePaiement || 'Virement bancaire';
-    }
+    const isRib = typeUpper === 'RIB';
+    const fifthTitle = isRib ? 'RIB' : 'Conditions de payement';
+    const fifthVal = isRib
+      ? (data.valeurEntetePaiement || data.rib || '')
+      : (data.valeurEntetePaiement || data.conditionPaiement || '60 JRs de la réception de facture');
 
     sheet.getCell('F13').value = fifthTitle;
     sheet.getCell('F13').font = headerFont;
