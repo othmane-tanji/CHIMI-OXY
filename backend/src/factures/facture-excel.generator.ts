@@ -238,7 +238,7 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
 
     sheet.mergeCells('E15:F15');
     const m4Val = sheet.getCell('E15');
-    m4Val.value = data.conditionPaiement || '60 JRs de la réception de facture';
+    m4Val.value = data.conditionPaiement || data.valeurEntetePaiement || '';
     m4Val.font = valFont;
     m4Val.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
     m4Val.fill = softFill;
@@ -257,7 +257,7 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
 
     sheet.mergeCells('E15:F15');
     const modeVal = sheet.getCell('E15');
-    modeVal.value = data.valeurEntetePaiement || 'Virement bancaire';
+    modeVal.value = data.valeurEntetePaiement || '';
     modeVal.font = valFont;
     modeVal.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
     modeVal.fill = softFill;
@@ -270,7 +270,7 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
     sheet.getCell('E13').border = thinBorder;
     sheet.getCell('E13').fill = headerFill;
 
-    sheet.getCell('E15').value = data.delaiPaiement || data.conditionPaiement || '60 JRs de la réception de facture';
+    sheet.getCell('E15').value = data.delaiPaiement || '';
     sheet.getCell('E15').font = valFont;
     sheet.getCell('E15').alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
     sheet.getCell('E15').border = thinBorder;
@@ -280,7 +280,7 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
     const fifthTitle = isRib ? 'RIB' : 'Conditions de payement';
     const fifthVal = isRib
       ? (data.valeurEntetePaiement || data.rib || '')
-      : (data.valeurEntetePaiement || data.conditionPaiement || '60 JRs de la réception de facture');
+      : (data.valeurEntetePaiement || data.conditionPaiement || '');
 
     sheet.getCell('F13').value = fifthTitle;
     sheet.getCell('F13').font = headerFont;
