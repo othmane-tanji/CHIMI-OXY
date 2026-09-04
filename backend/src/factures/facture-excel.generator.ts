@@ -311,7 +311,7 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
   };
 
   const headers = [
-    { col: 'B', text: 'CODE' },
+    { col: 'B', text: isChimiral ? 'EMBALLAGE' : 'CODE' },
     { col: 'C', text: 'Désignations' },
     { col: 'D', text: 'Qté' },
     { col: 'E', text: 'Prix Unitaire' },

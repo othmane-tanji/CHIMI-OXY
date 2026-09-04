@@ -231,7 +231,7 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
   const thFill = { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FFE5E7EB' } };
 
   const headers = [
-    { col: 'B', text: 'CODE' },
+    { col: 'B', text: isChimiral ? 'EMBALLAGE' : 'CODE' },
     { col: 'C', text: 'Désignations' },
     { col: 'D', text: 'Qté' },
     { col: 'E', text: 'Prix Unitaire' },
