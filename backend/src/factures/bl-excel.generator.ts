@@ -105,7 +105,7 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
     : new Date().toLocaleDateString('fr-FR');
   const dateCell = sheet.getCell('D4');
   dateCell.value = `Date: ${dateFormatted}`;
-  dateCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF374151' } };
+  dateCell.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FF374151' } };
   dateCell.alignment = { horizontal: 'center', vertical: 'middle' };
   dateCell.border = thinBorder;
   dateCell.fill = softFill;
@@ -113,7 +113,7 @@ export async function generateBlExcelBuffer(data: BlExcelData): Promise<Buffer> 
   // Sub-box N° (E4)
   const numCell = sheet.getCell('E4');
   numCell.value = `N : ${data.numeroBl || ''}`;
-  numCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF374151' } };
+  numCell.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FF374151' } };
   numCell.alignment = { horizontal: 'center', vertical: 'middle' };
   numCell.border = thinBorder;
   numCell.fill = softFill;

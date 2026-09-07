@@ -113,7 +113,7 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
     : new Date().toLocaleDateString('fr-FR');
   const dateCell = sheet.getCell('E4');
   dateCell.value = `Date: ${dateFormatted}`;
-  dateCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF374151' } };
+  dateCell.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FF374151' } };
   dateCell.alignment = { horizontal: 'center', vertical: 'middle' };
   dateCell.border = thinBorder;
   dateCell.fill = softFill;
@@ -121,7 +121,7 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
   // Sub-box N° (F4)
   const numCell = sheet.getCell('F4');
   numCell.value = `N : ${data.numeroFacture || ''}`;
-  numCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF374151' } };
+  numCell.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FF374151' } };
   numCell.alignment = { horizontal: 'center', vertical: 'middle' };
   numCell.border = thinBorder;
   numCell.fill = softFill;
