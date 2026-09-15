@@ -396,10 +396,10 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
   }
 
   const totalsBorder = {
-    top: { style: 'thin' as const, color: { argb: 'FF374151' } },
-    left: { style: 'thin' as const, color: { argb: 'FF374151' } },
-    bottom: { style: 'thin' as const, color: { argb: 'FF374151' } },
-    right: { style: 'thin' as const, color: { argb: 'FF374151' } },
+    top: { style: 'thin' as const, color: { argb: 'FF1F2937' } },
+    left: { style: 'thin' as const, color: { argb: 'FF1F2937' } },
+    bottom: { style: 'thin' as const, color: { argb: 'FF1F2937' } },
+    right: { style: 'thin' as const, color: { argb: 'FF1F2937' } },
   };
 
   // --- Row 1: Total H.T ---
@@ -408,7 +408,7 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
   const thtTitle = sheet.getCell(`E${totRow}`);
   thtTitle.value = 'Total H.T';
   thtTitle.font = { name: 'Arial', size: 13, bold: true, color: { argb: 'FF1F2937' } };
-  thtTitle.alignment = { horizontal: 'center', vertical: 'middle' };
+  thtTitle.alignment = { horizontal: 'right', vertical: 'middle' };
   thtTitle.border = totalsBorder;
 
   const thtVal = sheet.getCell(`F${totRow}`);
@@ -425,7 +425,7 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
   const tvaTitle = sheet.getCell(`E${totRow}`);
   tvaTitle.value = 'T.V.A 20%';
   tvaTitle.font = { name: 'Arial', size: 13, bold: true, color: { argb: 'FF1F2937' } };
-  tvaTitle.alignment = { horizontal: 'center', vertical: 'middle' };
+  tvaTitle.alignment = { horizontal: 'right', vertical: 'middle' };
   tvaTitle.border = totalsBorder;
 
   const tvaVal = sheet.getCell(`F${totRow}`);
@@ -436,13 +436,13 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
 
   totRow++;
 
-  // --- Row 3: Total T.T.C (Boxed with Border & Blue Font) ---
+  // --- Row 3: Total T.T.C (Boxed with Border & Blue Font, Aligned Right) ---
   sheet.getRow(totRow).height = 28;
 
   const ttcTitle = sheet.getCell(`E${totRow}`);
   ttcTitle.value = 'Total T.T.C';
   ttcTitle.font = { name: 'Arial', size: 13, bold: true, color: { argb: 'FF1E3A8A' } };
-  ttcTitle.alignment = { horizontal: 'center', vertical: 'middle' };
+  ttcTitle.alignment = { horizontal: 'right', vertical: 'middle' };
   ttcTitle.border = totalsBorder;
 
   const ttcVal = sheet.getCell(`F${totRow}`);
