@@ -395,33 +395,44 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
     });
   }
 
+  const totalsBorder = {
+    top: { style: 'thin' as const, color: { argb: 'FF374151' } },
+    left: { style: 'thin' as const, color: { argb: 'FF374151' } },
+    bottom: { style: 'thin' as const, color: { argb: 'FF374151' } },
+    right: { style: 'thin' as const, color: { argb: 'FF374151' } },
+  };
+
   // --- Row 1: Total H.T ---
-  sheet.getRow(totRow).height = 24;
+  sheet.getRow(totRow).height = 26;
 
   const thtTitle = sheet.getCell(`E${totRow}`);
   thtTitle.value = 'Total H.T';
-  thtTitle.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FF1F2937' } };
-  thtTitle.alignment = { horizontal: 'right', vertical: 'middle' };
+  thtTitle.font = { name: 'Arial', size: 13, bold: true, color: { argb: 'FF1F2937' } };
+  thtTitle.alignment = { horizontal: 'center', vertical: 'middle' };
+  thtTitle.border = totalsBorder;
 
   const thtVal = sheet.getCell(`F${totRow}`);
   thtVal.value = formatMontantFacture(totalHt);
-  thtVal.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FF111827' } };
+  thtVal.font = { name: 'Arial', size: 13, bold: true, color: { argb: 'FF111827' } };
   thtVal.alignment = { horizontal: 'right', vertical: 'middle' };
+  thtVal.border = totalsBorder;
 
   totRow++;
 
   // --- Row 2: T.V.A 20% ---
-  sheet.getRow(totRow).height = 24;
+  sheet.getRow(totRow).height = 26;
 
   const tvaTitle = sheet.getCell(`E${totRow}`);
   tvaTitle.value = 'T.V.A 20%';
-  tvaTitle.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FF1F2937' } };
-  tvaTitle.alignment = { horizontal: 'right', vertical: 'middle' };
+  tvaTitle.font = { name: 'Arial', size: 13, bold: true, color: { argb: 'FF1F2937' } };
+  tvaTitle.alignment = { horizontal: 'center', vertical: 'middle' };
+  tvaTitle.border = totalsBorder;
 
   const tvaVal = sheet.getCell(`F${totRow}`);
   tvaVal.value = formatMontantFacture(totalTva);
-  tvaVal.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FF111827' } };
+  tvaVal.font = { name: 'Arial', size: 13, bold: true, color: { argb: 'FF111827' } };
   tvaVal.alignment = { horizontal: 'right', vertical: 'middle' };
+  tvaVal.border = totalsBorder;
 
   totRow++;
 
@@ -432,13 +443,13 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
   ttcTitle.value = 'Total T.T.C';
   ttcTitle.font = { name: 'Arial', size: 13, bold: true, color: { argb: 'FF1E3A8A' } };
   ttcTitle.alignment = { horizontal: 'center', vertical: 'middle' };
-  ttcTitle.border = thinBorder;
+  ttcTitle.border = totalsBorder;
 
   const ttcVal = sheet.getCell(`F${totRow}`);
   ttcVal.value = formatMontantFacture(totalTtc);
   ttcVal.font = { name: 'Arial', size: 13, bold: true, color: { argb: 'FF1E3A8A' } };
   ttcVal.alignment = { horizontal: 'right', vertical: 'middle' };
-  ttcVal.border = thinBorder;
+  ttcVal.border = totalsBorder;
 
   totRow++;
 
