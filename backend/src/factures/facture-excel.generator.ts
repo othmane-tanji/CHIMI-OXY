@@ -377,23 +377,13 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
     [cellB, cellC, cellD, cellE, cellF].forEach((c) => (c.border = rowBorder));
   }
 
-  // 7. TOTALS SECTION (Exact match with user screenshot media_1789209226876.png)
-  let totRow = startRow + itemRowsCount;
+  // 7. TOTALS SECTION (Exact match with user request)
+  const totStartRow = startRow + itemRowsCount;
+  let totRow = totStartRow;
 
   const totalHt = data.totalHt ?? lignes.reduce((s, l) => s + Number(l.quantite || 0) * Number(l.prixUnitaire || 0), 0);
   const totalTva = data.totalTva ?? totalHt * 0.2;
   const totalTtc = data.totalTtc ?? totalHt + totalTva;
-
-  if (data.afficherChantier === true && data.chantier && data.chantier.trim()) {
-    sheet.mergeCells(`B${totRow}:C${totRow}`);
-    const chantierCell = sheet.getCell(`B${totRow}`);
-    chantierCell.value = `Chantier ${data.chantier.trim()}`;
-    chantierCell.font = { name: 'Calibri', size: 11, italic: true, bold: true, color: { argb: 'FF1F2937' } };
-    chantierCell.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
-    ['B', 'C'].forEach((col) => {
-      sheet.getCell(`${col}${totRow}`).border = boxBorder;
-    });
-  }
 
   const totalsBorder = {
     top: { style: 'thin' as const, color: { argb: 'FF1F2937' } },
@@ -401,6 +391,28 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
     bottom: { style: 'thin' as const, color: { argb: 'FF1F2937' } },
     right: { style: 'thin' as const, color: { argb: 'FF1F2937' } },
   };
+
+  // --- Left Box: Merge B:D across the 3 Totals Rows for "Arrêté la présente..." and Chantier ---
+  sheet.mergeCells(`B${totStartRow}:D${totStartRow + 2}`);
+  const lettCell = sheet.getCell(`B${totStartRow}`);
+
+  let textContent = '';
+  if (data.afficherChantier === true && data.chantier && data.chantier.trim()) {
+    textContent += `Chantier ${data.chantier.trim()}\n`;
+  }
+  if (data.montantEnLettres) {
+    textContent += `Arrêté la présente facture à la somme de : ${data.montantEnLettres}`;
+  }
+
+  lettCell.value = textContent;
+  lettCell.font = { name: 'Calibri', size: 11, italic: true, bold: true, color: { argb: 'FF1F2937' } };
+  lettCell.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
+
+  for (let r = totStartRow; r <= totStartRow + 2; r++) {
+    ['B', 'C', 'D'].forEach((col) => {
+      sheet.getCell(`${col}${r}`).border = totalsBorder;
+    });
+  }
 
   // --- Row 1: Total H.T ---
   sheet.getRow(totRow).height = 26;
@@ -450,19 +462,6 @@ export async function generateFactureExcelBuffer(data: FactureExcelData): Promis
   ttcVal.font = { name: 'Arial', size: 13, bold: true, color: { argb: 'FF1E3A8A' } };
   ttcVal.alignment = { horizontal: 'right', vertical: 'middle' };
   ttcVal.border = totalsBorder;
-
-  totRow++;
-
-  // --- Row 4: ARRÊTÉ LA PRÉSENTE FACTURE À LA SOMME DE : ---
-  if (data.montantEnLettres) {
-    sheet.getRow(totRow).height = 28;
-    sheet.mergeCells(`B${totRow}:F${totRow}`);
-    const lettCell = sheet.getCell(`B${totRow}`);
-    lettCell.value = `Arrêté la présente facture à la somme de : ${data.montantEnLettres}`;
-    lettCell.font = { name: 'Calibri', size: 11, italic: true, bold: true, color: { argb: 'FF1F2937' } };
-    lettCell.alignment = { horizontal: 'left', vertical: 'middle' };
-    ['B', 'C', 'D', 'E', 'F'].forEach((col) => (sheet.getCell(`${col}${totRow}`).border = boxBorder));
-  }
 
   const buffer = await wb.xlsx.writeBuffer();
   return Buffer.from(buffer);
